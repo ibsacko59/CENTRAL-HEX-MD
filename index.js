@@ -12,7 +12,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 // Render persistent disk
-const SESSION_BASE_PATH = "/sessions";
+const SESSION_BASE_PATH = path.join(__dirname, "sessions");
 
 // créer dossier si pas existe
 if (!fs.existsSync(SESSION_BASE_PATH)) {
