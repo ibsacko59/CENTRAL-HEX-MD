@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pair Code</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+<h1>Pair Code</h1>
+
+<input id="number" placeholder="224XXXXXXXX">
+<button class="btn" onclick="generate()">Générer</button>
+<h2 id="result"></h2>
+<a href="/" class="btn">Retour</a>
+</div>
+
+<script>
+async function generate(){
+let number=document.getElementById("number").value;
+let res=await fetch("/pair",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({number})});
+let data=await res.json();
+document.getElementById("result").innerText=data.code?data.code:data.error;
+}
+</script>
+
+</body>
+</html>
