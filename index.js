@@ -8,11 +8,16 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
+const PORT = process.env.PORT || 3000;
+
+// IMPORTANT POUR RENDER DISK
+const BASE_SESSION_PATH = "/sessions";
+
 let sessions = {};
 let qrStore = {};
 
 async function createSession(number) {
-    const sessionPath = path.join(__dirname, "sessions", number);
+    const sessionPath = path.join(BASE_SESSION_PATH, number);
 
     if (!fs.existsSync(sessionPath)) {
         fs.mkdirSync(sessionPath, { recursive: true });
@@ -35,13 +40,16 @@ async function createSession(number) {
         }
 
         if (connection === "open") {
-            console.log(`Connecté : ${number}`);
+            console.log("✅ Connecté :", number);
         }
 
         if (connection === "close") {
             const shouldReconnect =
                 lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) createSession(number);
+
+            if (shouldReconnect) {
+                createSession(number);
+            }
         }
     });
 
@@ -49,35 +57,45 @@ async function createSession(number) {
     return sock;
 }
 
+// PAIR CODE
 app.post("/pair", async (req, res) => {
     const number = req.body.number;
 
-    if (!number) return res.json({ error: "Numéro requis" });
+    if (!number) {
+        return res.json({ error: "Numéro requis" });
+    }
 
     try {
         const sock = await createSession(number);
         const code = await sock.requestPairingCode(number);
         res.json({ code });
     } catch (err) {
+        console.log(err);
         res.json({ error: "Erreur génération code" });
     }
 });
 
+// QR CODE MULTI USER
 app.post("/qr", async (req, res) => {
     const number = req.body.number;
 
-    if (!number) return res.json({ error: "Numéro requis" });
+    if (!number) {
+        return res.json({ error: "Numéro requis" });
+    }
 
     try {
         await createSession(number);
+
         setTimeout(() => {
             res.json({ qr: qrStore[number] || null });
         }, 4000);
+
     } catch (err) {
+        console.log(err);
         res.json({ error: "Erreur QR" });
     }
 });
 
-app.listen(3000, () => {
-    console.log("🔥 CENTRAL-HEX MULTI SESSION PRO lancé");
+app.listen(PORT, () => {
+    console.log("🔥 CENTRAL-HEX MULTI SESSION lancé sur port " + PORT);
 });
