@@ -1,0 +1,22 @@
+{
+  "name": "central-hex-md-session",
+  "version": "1.0.0",
+  "description": "CENTRAL-HEX-MD session generator (QR + Pairing Code) for Baileys.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.17",
+    "@adiwajshing/keyed-db": "^0.2.4",
+    "async-mutex": "0.4.1",
+    "awesome-phonenumber": "^2.64.0",
+    "body-parser": "^1.20.1",
+    "express": "^4.18.1",
+    "megajs": "1.1.7",
+    "phone": "3.1.30",
+    "pino": "^8.1.0",
+    "qrcode": "^1.5.3"
+  }
+}

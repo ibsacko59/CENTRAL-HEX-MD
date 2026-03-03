@@ -1,0 +1,4335 @@
+console.log('🔧 CENTRALE-HEX - Vérification des dépendances...');
+console.log('📦 Version correcte: @whiskeysockets/baileys (avec un seul L)');
+
+const requiredModules = [
+  '@whiskeysockets/baileys',
+  'pino',
+  'fs',
+  'path',
+  'child_process',
+  'readline',
+  'buffer'
+];
+
+const missingModules = [];
+
+// 📁 CHARGEMENT DE LA CONFIGURATION
+let config = {};
+try {
+  if (fs.existsSync('./config.json')) {
+    config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+    console.log('✅ Configuration chargée depuis config.json');
+  } else {
+    console.log('⚠️ config.json non trouvé, création avec valeurs par défaut...');
+    config = {
+      prefix: "Ib",
+      ownerNumber: "224621963059",
+      botPublic: false,
+      fakeRecording: false,
+      fakeTyping: false,
+      alwaysOnline: true,
+      antiLink: true,
+      logLevel: "silent",
+      telegramLink: "https://t.me/centralhex224",
+      botImageUrl: "https://i.ibb.co/RpG5TFyG/IMG-20260228-WA0167.jpg",
+ botImageUrl: "https://i.ibb.co/zhtV7Lc0/IMG-20260220-WA0327.jpg",
+      // ✅ AJOUT: URL de la chaîne WhatsApp
+      channelUrl: "https://whatsapp.com/channel/0029VbC8YkY7oQhiOiiSpy1z",
+      channelName: "👾 𝗖𝗘𝗡𝗧𝗥𝗔𝗟 𝗛𝗘𝗫 👾"
+    };
+    fs.writeFileSync('./config.json',JSON.stringify(config, null, 2));
+    console.log('✅ config.json créé avec valeurs par défaut');
+  }
+} catch (error) {
+  console.log('❌ Erreur chargement config.json:', error.message);
+  config = {
+    prefix: "Ib",
+    ownerNumber: "224621963059",
+    botPublic: false,
+    fakeRecording: false,
+    fakeTyping: false,
+    alwaysOnline: true,
+    antiLink: true,
+    logLevel: "silent",
+    telegramLink: "https://t.me/centralhex224",
+    botImageUrl: "https://i.ibb.co/RpG5TFyG/IMG-20260228-WA0167.jpg",
+ botImageUrl: "https://i.ibb.co/zhtV7Lc0/IMG-20260220-WA0327.jpg",
+       channelUrl: "https://whatsapp.com/channel/0029VbC8YkY7oQhiOiiSpy1z",
+    channelName: "👾 𝗖𝗘𝗡𝗧𝗥𝗔𝗟 𝗛𝗘𝗫 👾"
+  };
+}
+
+// Variables globales depuis config.json
+const prefix = config.prefix || "Ib";
+let botPublic = config.botPublic || false;
+let welcomeEnabled = false;
+let fakeRecording = config.fakeRecording || false;
+let fakeTyping = config.fakeTyping || false;
+let alwaysOnline = config.alwaysOnline || true;
+const antiLink = config.antiLink || true;
+const OWNER_NUMBER = `${config.ownerNumber.replace(/\D/g, '')}@s.whatsapp.net`;
+const telegramLink = config.telegramLink || "https://t.me/centralhex224";
+const botImageUrl = config.botImageUrl || "https://i.ibb.co/RpG5TFyG/IMG-20260228-WA0167.jpg";
+const logLevel = config.logLevel || "silent";
+const CHANNEL_NAME = config.channelName || "👾 𝗖𝗘𝗡𝗧𝗥𝗔𝗟 𝗛𝗘𝗫 👾";
+
+console.log('📋 Configuration chargée:');
+console.log(`  • Prefix: ${prefix}`);
+console.log(`  • Owner: ${OWNER_NUMBER}`);
+console.log(`  • Mode: ${botPrivé ? 'Public' : 'Privé'}`);
+console.log(`  • Fake Recording: ${fakeRecording ? 'Activé' : 'Désactivé'}`);
+console.log(`  • Fake Typing: ${fakeTyping ? 'Activé' : 'Désactivé'}`);
+console.log(`  • Always Online: ${alwaysOnline ? 'Activé' : 'Désactivé'}`);
+console.log(`  • Chaîne: ${CHANNEL_NAME}`);
+
+// Vérifier chaque module
+for (const module of requiredModules) {
+  try {
+    if (['fs', 'path', 'child_process', 'readline', 'buffer'].includes(module)) {
+      require(module);
+      console.log(`✅ ${module} - PRÉSENT (Node.js)`);
+    } else {
+      require.resolve(module);
+      console.log(`✅ ${module} - PRÉSENT`);
+    }
+  } catch (error) {
+    if (!['fs', 'path', 'child_process', 'readline', 'buffer'].includes(module)) {
+      missingModules.push(module);
+      console.log(`❌ ${module} - MANQUANT`);
+    }
+  }
+}
+
+// Installation automatique si modules manquants
+if (missingModules.length > 0) {
+  console.log('\n📥 Installation automatique des modules manquants...');
+  
+  try {
+    const { execSync } = require('child_process');
+    const fs = require('fs');
+    const path = require('path');
+    
+    const modulesToInstall = {
+      '@whiskeysockets/baileys': '^6.5.0',
+      'pino': '^8.19.0'
+    };
+    
+    console.log('📄 Création/MAJ package.json...');
+    
+    let packageJson = {
+      name: 'centrale-hex-bot',
+      version: '1.0.0',
+      description: 'CENTRALE-HEX WhatsApp Bot',
+      main: 'index.js',
+      scripts: {
+        start: 'node index.js',
+        install: 'echo "Installation des dépendances..."'
+      },
+      dependencies: {}
+    };
+    
+    if (fs.existsSync('package.json')) {
+      try {
+        const existing = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+        packageJson = { ...packageJson, ...existing };
+      } catch (e) {
+        console.log('⚠️ package.json existant invalide, création nouveau');
+      }
+    }
+    
+    Object.keys(modulesToInstall).forEach(mod => {
+      packageJson.dependencies[mod] = modulesToInstall[mod];
+    });
+    
+    fs.writeFileSync('package.json', JSON.stringify(packageJson, null, 2));
+    
+    console.log('🚀 Installation via npm...');
+    
+    for (const module of missingModules) {
+      if (modulesToInstall[module]) {
+        console.log(`📦 Installation de ${module}@${modulesToInstall[module]}...`);
+        try {
+          execSync(`npm install ${module}@${modulesToInstall[module]}`, { 
+            stdio: 'inherit',
+            cwd: process.cwd()
+          });
+        } catch (installError) {
+          console.log(`⚠️ Tentative alternative pour ${module}...`);
+          try {
+            execSync(`npm install ${module}`, { 
+              stdio: 'pipe',
+              cwd: process.cwd() 
+            });
+          } catch (e) {
+            console.log(`❌ Échec installation ${module}: ${e.message}`);
+          }
+        }
+      }
+    }
+    
+    console.log('\n✅ Installation terminée !');
+    console.log('🔄 Redémarrage dans 3 secondes appuyez sur start...');
+    
+    setTimeout(() => {
+      console.clear();
+      console.log('🚀 REDÉMARRAGE DU BOT CENTRALE-HEX...\n');
+      require('./index.js');
+    }, 3000);
+    
+    return;
+    
+  } catch (error) {
+    console.log('❌ Erreur installation automatique:', error.message);
+    console.log('\n🛠️ INSTALLEZ MANUELLEMENT:');
+    console.log('npm install @whiskeysockets/baileys@^6.5.0 pino@^8.19.0');
+    
+    const readline = require('readline');
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    
+    rl.question('\nVoulez-vous essayer l\'installation manuelle? (o/n): ', (answer) => {
+      if (answer.toLowerCase() === 'o') {
+        console.log('Exécutez cette commande:');
+        console.log('npm install @whiskeysockets/baileys@^6.5.0 pino@^8.19.0');
+      }
+      rl.close();
+      process.exit(1);
+    });
+    
+    return;
+  }
+}
+
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  downloadContentFromMessage,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+  Browsers,
+  delay,
+  getContentType
+} = require("@whiskeysockets/baileys");
+
+const antiLinkWarnings = new Map();
+const P = require("pino");
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
+const { exec } = require("child_process");
+const { Buffer } = require("buffer");
+
+const OWNER = ["224621963059@s.whatsapp.net"];
+
+function isOwner(sender) {
+    return sender === "224621963059@s.whatsapp.net" || 
+           sender.endsWith("224621963059@s.whatsapp.net");
+}
+
+let sock = null;
+let botReady = false;
+let pairingCodes = new Map();
+
+function isBotReady() {
+  return botReady;
+}
+
+async function generatePairCode(phone) {
+  try {
+    if (!sock) {
+      console.log('❌ Bot non initialisé pour générer pair code');
+      return null;
+    }
+    
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneWithCountry = cleanPhone.startsWith('224') ? cleanPhone : `224${cleanPhone}`;
+    
+    console.log(`📱 Génération pair code pour: ${phoneWithCountry}`);
+    
+    const code = await sock.requestPairingCode(phoneWithCountry);
+    
+    if (code) {
+      pairingCodes.set(phoneWithCountry, {
+        code: code,
+        timestamp: Date.now()
+      });
+      
+      setTimeout(() => {
+        pairingCodes.delete(phoneWithCountry);
+      }, 300000);
+      
+      console.log(`✅ Pair code généré: ${code} pour ${phoneWithCountry}`);
+      return code;
+    }
+    
+    return null;
+  } catch (error) {
+    console.log(`❌ Erreur génération pair code: ${error.message}`);
+    return null;
+  }
+}
+
+const colors = {
+  reset: '\x1b[0m',
+  bright: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m'
+};
+
+// 📁 Dossiers
+const VV_FOLDER = "./.VV";
+const DELETED_MESSAGES_FOLDER = "./deleted_messages";
+const COMMANDS_FOLDER = "./commands";
+const VIEW_ONCE_FOLDER = "./viewOnce";
+const DELETED_IMAGES_FOLDER = "./deleted_images";
+
+// ✅ Création automatique des dossiers
+[VV_FOLDER, DELETED_MESSAGES_FOLDER, COMMANDS_FOLDER, VIEW_ONCE_FOLDER, DELETED_IMAGES_FOLDER].forEach(folder => {
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+    console.log(`${colors.green}✅ Dossier ${folder} créé${colors.reset}`);
+  } else {
+    console.log(`${colors.cyan}📁 Dossier ${folder} déjà existant${colors.reset}`);
+  }
+});
+
+// ✅ Création automatique du fichier antipurge.js
+const ANTIPURGE_PATH = path.join(COMMANDS_FOLDER, 'antipurge.js');
+if (!fs.existsSync(ANTIPURGE_PATH)) {
+  console.log(`${colors.yellow}📝 Création du fichier antipurge.js...${colors.reset}`);
+  
+  const antipurgeContent = `// Commande antipurge - Protection contre les purges
+module.exports = {
+  name: "antipurge",
+  description: "Active la protection contre les purges",
+  category: "admin",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    
+    if (!from.endsWith('@g.us')) {
+      return await sock.sendMessage(from, { text: "❌ Cette commande fonctionne uniquement dans les groupes." });
+    }
+    
+    const groupMetadata = await sock.groupMetadata(from);
+    const participant = groupMetadata.participants.find(p => p.id === sender);
+    
+    if (!participant || !['admin', 'superadmin'].includes(participant.admin)) {
+      return await sock.sendMessage(from, { text: "❌ Seuls les admins peuvent utiliser cette commande." });
+    }
+    
+    const option = args[0]?.toLowerCase();
+    
+    if (option === 'on') {
+      await sock.sendMessage(from, { text: "🛡️ *ANTIPURGE ACTIVÉ* - La protection est maintenant active." });
+    } else if (option === 'off') {
+      await sock.sendMessage(from, { text: "🛡️ *ANTIPURGE DÉSACTIVÉ* - La protection est désactivée." });
+    } else {
+      await sock.sendMessage(from, { 
+        text: "📋 *ANTIPURGE*\n\nUtilisation:\n• .antipurge on - Activer\n• .antipurge off - Désactiver\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻𝙴-𝙷𝙴𝚇"
+      });
+    }
+  }
+};`;
+  
+  fs.writeFileSync(ANTIPURGE_PATH, antipurgeContent);
+  console.log(`${colors.green}✅ Fichier antipurge.js créé avec succès${colors.reset}`);
+}
+
+const randomEmojis = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👿", "👹", "👺", "🤡", "💩", "👻", "💀", "☠️", "👽", "👾", "🤖", "🎃", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾"];
+
+let processingMessages = new Set();
+let isProcessing = false;
+let lastDeletedMessage = new Map();
+let antiLinkCooldown = new Map();
+let botMessages = new Set();
+let autoReact = true;
+
+const messageStore = new Map();
+const viewOnceStore = new Map();
+
+// ✅ FONCTION PRINCIPALE POUR ENVOYER DES MESSAGES AVEC EFFET TRANSFÉRÉ
+async function sendWithChannelButton(sock, jid, text, mentions = [], imageUrl = null) {
+  try {
+    const messageOptions = {
+      text: text,
+      mentions: mentions || [],
+      contextInfo: {
+        externalAdReply: {
+          title: CHANNEL_NAME,
+          body: "Rejoignez notre chaîne WhatsApp",
+          thumbnailUrl: botImageUrl,
+          mediaType: 1,
+          mediaUrl: CHANNEL_URL,
+          sourceUrl: CHANNEL_URL,
+          showAdAttribution: true,
+          renderLargerThumbnail: true
+        }
+      }
+    };
+
+    if (imageUrl) {
+      messageOptions.image = { url: imageUrl };
+      messageOptions.caption = text;
+      delete messageOptions.text;
+    }
+
+    const sentMsg = await sock.sendMessage(jid, messageOptions);
+    
+    if (sentMsg?.key?.id) {
+      botMessages.add(sentMsg.key.id);
+      setTimeout(() => botMessages.delete(sentMsg.key.id), 300000);
+    }
+    
+    return sentMsg;
+  } catch (error) {
+    console.log(`${colors.yellow}⚠️ Erreur envoi message: ${error.message}${colors.reset}`);
+    return await sock.sendMessage(jid, { text: text, mentions: mentions || [] });
+  }
+}
+
+// ✅ Cache pour les métadonnées de groupe
+const groupMetadataCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getGroupMetadata(sock, groupId) {
+  const cached = groupMetadataCache.get(groupId);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+    return cached.data;
+  }
+  
+  const metadata = await sock.groupMetadata(groupId);
+  groupMetadataCache.set(groupId, { data: metadata, timestamp: Date.now() });
+  return metadata;
+}
+
+// Nettoyage périodique du cache
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of groupMetadataCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      groupMetadataCache.delete(key);
+    }
+  }
+}, CACHE_TTL);
+
+class CommandHandler {
+  constructor() {
+    this.commands = new Map();
+    this.commandsLoaded = false;
+    this.initializeCommands();
+  }
+
+  initializeCommands() {
+    try {
+      console.log(`${colors.cyan}📁 Initialisation des commandes...${colors.reset}`);
+      
+      this.loadBuiltinCommands();
+      this.loadCommandsFromDirectory();
+      
+      this.commandsLoaded = true;
+      console.log(`${colors.green}✅ ${this.commands.size} commandes chargées avec succès${colors.reset}`);
+      
+      console.log(`${colors.cyan}📋 Commandes disponibles:${colors.reset}`);
+      this.commands.forEach((cmd, name) => {
+        console.log(`  ${colors.green}•${colors.reset} ${name}${colors.cyan} - ${cmd.description || 'Pas de description'}${colors.reset}`);
+      });
+      
+    } catch (error) {
+      this.commandsLoaded = false;
+      console.log(`${colors.red}❌ Erreur chargement commandes: ${error.message}${colors.reset}`);
+      
+      this.loadBuiltinCommands();
+      this.commandsLoaded = true;
+    }
+  }
+
+  loadCommandsFromDirectory() {
+    let count = 0;
+    
+    try {
+      const commandsDir = path.join(__dirname, 'commands');
+      
+      if (!fs.existsSync(commandsDir)) {
+        console.log(`${colors.yellow}⚠️ Dossier commands non trouvé${colors.reset}`);
+        return count;
+      }
+      
+      const items = fs.readdirSync(commandsDir, { withFileTypes: true });
+      
+      for (const item of items) {
+        const fullPath = path.join(commandsDir, item.name);
+        
+        try {
+          if (item.isDirectory()) {
+            const subItems = fs.readdirSync(fullPath, { withFileTypes: true });
+            for (const subItem of subItems) {
+              if (subItem.isFile() && subItem.name.endsWith('.js')) {
+                const subPath = path.join(fullPath, subItem.name);
+                count += this.loadSingleCommand(subPath);
+              }
+            }
+          } else if (item.isFile() && item.name.endsWith('.js')) {
+            count += this.loadSingleCommand(fullPath);
+          }
+        } catch (error) {
+          console.log(`${colors.yellow}⚠️ Erreur chargement ${item.name}: ${error.message}${colors.reset}`);
+        }
+      }
+      
+      return count;
+      
+    } catch (error) {
+      console.log(`${colors.yellow}⚠️ Erreur scan dossier commands: ${error.message}${colors.reset}`);
+      return count;
+    }
+  }
+
+  loadSingleCommand(fullPath) {
+    try {
+      delete require.cache[require.resolve(fullPath)];
+      const command = require(fullPath);
+      
+      if (command && command.name && typeof command.execute === 'function') {
+        const commandName = command.name.toLowerCase();
+        
+        if (this.commands.has(commandName)) {
+          console.log(`${colors.yellow}⚠️ Commande en doublon ignorée: ${commandName}${colors.reset}`);
+          return 0;
+        }
+        
+        this.commands.set(commandName, command);
+        
+        const relativePath = path.relative(process.cwd(), fullPath);
+        console.log(`${colors.green}✅ Commande chargée: ${colors.cyan}${command.name}${colors.reset} (${relativePath})`);
+        return 1;
+      } else {
+        console.log(`${colors.yellow}⚠️ Format invalide: ${path.basename(fullPath)} - manque name ou execute${colors.reset}`);
+        return 0;
+      }
+      
+    } catch (requireError) {
+      if (!requireError.message.includes('Cannot find module')) {
+        console.log(`${colors.yellow}⚠️ Erreur chargement ${path.basename(fullPath)}: ${requireError.message}${colors.reset}`);
+      }
+      return 0;
+    }
+  }
+
+  loadBuiltinCommands() {
+    const self = this;
+
+// ==================== COMMANDE RESTART ====================
+this.commands.set("ibrestart", {
+  name: "ibrestart",
+  category: "owner",
+  async execute(sock, msg) {
+
+    const sender = msg.key.participant || msg.key.remoteJid
+    const from = msg.key.remoteJid
+
+    if (!isOwner(sender))
+      return sock.sendMessage(from, { text: "❌ Owner seulement." })
+
+    await sock.sendMessage(from, { text: "♻️ Redémarrage..." })
+
+    process.exit()
+  }
+})
+
+// ==================== COMMANDE SHUTDOWN ====================
+this.commands.set("ibshutdown", {
+  name: "ibshutdown",
+  category: "owner",
+  async execute(sock, msg) {
+
+    const sender = msg.key.participant || msg.key.remoteJid
+    const from = msg.key.remoteJid
+
+    if (!isOwner(sender))
+      return sock.sendMessage(from, { text: "❌ Owner seulement." })
+
+    await sock.sendMessage(from, { text: "🛑 Bot arrêté." })
+
+    process.exit(0)
+  }
+})
+
+// ==================== COMMANDE BLOCK ====================
+this.commands.set("ibblock", {
+  name: "ibblock",
+  category: "owner",
+  async execute(sock, msg) {
+
+    const sender = msg.key.participant || msg.key.remoteJid
+    const from = msg.key.remoteJid
+
+    if (!isOwner(sender))
+      return sock.sendMessage(from, { text: "❌ Owner seulement." })
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.participant
+    if (!target)
+      return sock.sendMessage(from, { text: "❌ Mentionne la personne." })
+
+    await sock.updateBlockStatus(target, "block")
+
+    sock.sendMessage(from, { text: "🚫 Utilisateur bloqué." })
+  }
+})
+
+// ==================== COMMANDE UNBLOCK ====================
+this.commands.set("ibunblock", {
+  name: "ibunblock",
+  category: "owner",
+  async execute(sock, msg) {
+
+    const sender = msg.key.participant || msg.key.remoteJid
+    const from = msg.key.remoteJid
+
+    if (!isOwner(sender))
+      return sock.sendMessage(from, { text: "❌ Owner seulement." })
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.participant
+    if (!target)
+      return sock.sendMessage(from, { text: "❌ Mentionne la personne." })
+
+    await sock.updateBlockStatus(target, "unblock")
+
+    sock.sendMessage(from, { text: "✅ Utilisateur débloqué." })
+  }
+})
+
+// ==================== COMMANDE SETPPBOT ====================
+this.commands.set("ibsetppbot", {
+  name: "ibsetppbot",
+  category: "owner",
+  async execute(sock, msg) {
+
+    const sender = msg.key.participant || msg.key.remoteJid
+    const from = msg.key.remoteJid
+
+    if (!isOwner(sender))
+      return sock.sendMessage(from, { text: "❌ Owner seulement." })
+
+    const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage
+    if (!quoted)
+      return sock.sendMessage(from, { text: "❌ Répond à une image." })
+
+    const buffer = await sock.downloadMediaMessage({
+      message: { imageMessage: quoted }
+    })
+
+    await sock.updateProfilePicture(sock.user.id, buffer)
+
+    sock.sendMessage(from, { text: "🖼️ Photo du bot changée." })
+  }
+})
+
+
+// ==================== COMMANDE MUTE ====================
+this.commands.set("mute", {
+  name: "mute",
+  description: "Met le groupe en mode muet",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) return;
+
+    try {
+      await sock.groupSettingUpdate(from, "announcement");
+      await sendWithChannelButton(sock, from, "🔇 Groupe mis en mode muet");
+    } catch {
+      await sock.sendMessage(from, { text: "❌ Erreur mute" });
+    }
+  }
+});
+
+this.commands.set("unmute", {
+  name: "unmute",
+  description: "Enlève le mode muet",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) return;
+
+    try {
+      await sock.groupSettingUpdate(from, "not_announcement");
+      await sendWithChannelButton(sock, from, "🔊 Groupe réactivé");
+    } catch {
+      await sock.sendMessage(from, { text: "❌ Erreur unmute" });
+    }
+  }
+});
+
+// ==================== COMMANDE OPEN ====================
+this.commands.set("open", {
+  name: "open",
+  description: "Ouvre le groupe (tout le monde peut envoyer)",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return sock.sendMessage(from, { text: "❌ Groupe uniquement" });
+    }
+
+    try {
+      await sock.groupSettingUpdate(from, "not_announcement");
+      await sendWithChannelButton(sock, from, "🔓 Groupe ouvert à tous");
+    } catch (e) {
+      await sock.sendMessage(from, { text: "❌ Erreur ouverture groupe" });
+    }
+  }
+});
+
+// ==================== COMMANDE CLOSE ====================
+this.commands.set("close", {
+  name: "close",
+  description: "Ferme le groupe (admins seulement)",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return sock.sendMessage(from, { text: "❌ Groupe uniquement" });
+    }
+
+    try {
+      await sock.groupSettingUpdate(from, "announcement");
+      await sendWithChannelButton(sock, from, "🔒 Groupe fermé (admins seulement)");
+    } catch (e) {
+      await sock.sendMessage(from, { text: "❌ Erreur fermeture groupe" });
+    }
+  }
+});
+
+// ==================== COMMANDE ANTILINK ====================
+this.commands.set("antilink", {
+  name: "antilink",
+  description: "Active ou désactive antilink",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return sock.sendMessage(from, { text: "❌ Groupe uniquement" });
+    }
+
+    const option = args[0];
+
+    if (!option || !["on", "off"].includes(option)) {
+      return sock.sendMessage(from, { text: "❌ Usage: .antilink on/off" });
+    }
+
+    const configPath = "./antilink.json";
+    let data = {};
+
+    if (fs.existsSync(configPath)) {
+      data = JSON.parse(fs.readFileSync(configPath));
+    }
+
+    data[from] = option === "on";
+    fs.writeFileSync(configPath, JSON.stringify(data, null, 2));
+
+    await sendWithChannelButton(sock, from,
+      `🔗 Antilink ${option === "on" ? "activé" : "désactivé"}`
+    );
+  }
+});
+
+// ==================== COMMANDE HIDETAG ====================
+this.commands.set("hidetag", {
+  name: "hidetag",
+  description: "Mentionne tout le monde discrètement",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return;
+    }
+
+    const metadata = await getGroupMetadata(sock, from);
+    const mentions = metadata.participants.map(p => p.id);
+    const text = args.join(" ") || "👻";
+
+    await sock.sendMessage(from, {
+      text,
+      mentions
+    });
+  }
+});
+
+// ==================== COMMANDE REVOKE ====================
+this.commands.set("revoke", {
+  name: "revoke",
+  description: "Réinitialise le lien du groupe",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) return;
+
+    try {
+      await sock.groupRevokeInvite(from);
+      await sendWithChannelButton(sock, from, "🔄 Nouveau lien généré");
+    } catch {
+      await sock.sendMessage(from, { text: "❌ Erreur revoke" });
+    }
+  }
+});
+
+// ==================== COMMANDE PURGE ====================
+this.commands.set("purge", {
+  name: "purge",
+  description: "Supprime les derniers messages du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    try {
+      await sock.sendMessage(from, { delete: msg.key });
+    } catch {
+      await sock.sendMessage(from, { text: "❌ Erreur purge" });
+    }
+  }
+});
+
+// ==================== COMMANDE QUIZ ====================
+this.commands.set("quiz", {
+  name: "quiz",
+  description: "Lance un quiz simple",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    const questions = [
+      { q: "Quelle est la capitale de la France ?", a: "paris" },
+      { q: "2 + 2 = ?", a: "4" },
+      { q: "Qui a créé WhatsApp ?", a: "jan koum" }
+    ];
+
+    const random = questions[Math.floor(Math.random() * questions.length)];
+
+    global.activeQuiz = {
+      group: from,
+      answer: random.a
+    };
+
+    await sendWithChannelButton(sock, from, `❓ QUIZ\n\n${random.q}`);
+  }
+});
+
+
+
+    // ==================== COMMANDE SETNAME ====================
+    this.commands.set("setname", {
+      name: "setname",
+      description: "Change le nom du groupe",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          return sock.sendMessage(from, { text: "❌ Commande réservée aux groupes" });
+        }
+
+        const newName = args.join(" ");
+        if (!newName) {
+          return sock.sendMessage(from, {
+            text: "❌ Utilisation : .setname <nouveau nom>"
+          });
+        }
+
+        try {
+          const metadata = await getGroupMetadata(sock, from);
+          const participants = metadata.participants;
+          const sender = msg.key.participant || msg.key.remoteJid;
+
+          const isAdmin = participants.some(
+            p => p.id === sender && (p.admin === "admin" || p.admin === "superadmin")
+          );
+
+          if (!isAdmin) {
+            return sock.sendMessage(from, {
+              text: "❌ Seuls les admins peuvent changer le nom du groupe"
+            });
+          }
+
+          await sock.groupUpdateSubject(from, newName);
+          groupMetadataCache.delete(from);
+
+          await sendWithChannelButton(sock, from, `✅ Nom du groupe changé en : *${newName}*`);
+
+        } catch (err) {
+          console.log("setname error:", err);
+          await sock.sendMessage(from, { text: "❌ Erreur lors du changement de nom du groupe" });
+        }
+      }
+    });
+
+    // ==================== COMMANDE LINK ====================
+    this.commands.set("link", {
+      name: "link",
+      description: "Donne le lien d'invitation du groupe",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          return await sock.sendMessage(from, { text: "❌ Commande réservée aux groupes" });
+        }
+
+        try {
+          const inviteCode = await sock.groupInviteCode(from);
+
+          if (!inviteCode) {
+            return await sock.sendMessage(from, {
+              text: "❌ Impossible de récupérer le lien. Assurez-vous que le bot est admin."
+            });
+          }
+
+          await sendWithChannelButton(sock, from, `🔗 Lien du groupe :\nhttps://chat.whatsapp.com/${inviteCode}`);
+
+        } catch (err) {
+          console.log("link error:", err);
+          await sock.sendMessage(from, { text: "❌ Erreur lors de la récupération du lien du groupe" });
+        }
+      }
+    });
+    
+    // ==================== COMMANDE STEALPP ====================
+    this.commands.set("stealpp", {
+      name: "stealpp",
+      description: "Récupère la photo de profil d'un utilisateur",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        try {
+          let targetJid;
+
+          if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
+            targetJid = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
+          } else if (args[0]) {
+            const num = args[0].replace(/\D/g, "");
+            if (!num) {
+              return sock.sendMessage(from, { text: "❌ Numéro invalide" });
+            }
+            targetJid = num + "@s.whatsapp.net";
+          } else {
+            targetJid = msg.key.participant || msg.key.remoteJid;
+          }
+
+          let ppUrl;
+          try {
+            ppUrl = await sock.profilePictureUrl(targetJid, "image");
+          } catch {
+            return sock.sendMessage(from, {
+              text: "❌ Photo de profil privée ou indisponible"
+            });
+          }
+
+          await sendWithChannelButton(sock, from, `🕵️ *STEAL PP*\n\n👤 @${targetJid.split("@")[0]}`, [targetJid], ppUrl);
+
+        } catch (err) {
+          console.log("stealpp error:", err);
+          await sock.sendMessage(from, { text: "❌ Erreur lors de la récupération de la photo" });
+        }
+      }
+    });
+
+    // ==================== COMMANDE WELCOME ====================
+    this.commands.set("welcome", {
+      name: "welcome",
+      description: "Active ou désactive le message de bienvenue",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        try {
+          if (args[0] === "on") {
+            welcomeEnabled = true;
+            return await sendWithChannelButton(sock, from, "✅ Messages de bienvenue activés");
+          } else if (args[0] === "off") {
+            welcomeEnabled = false;
+            return await sendWithChannelButton(sock, from, "❌ Messages de bienvenue désactivés");
+          }
+
+          if (!welcomeEnabled) {
+            return await sendWithChannelButton(sock, from, "❌ La fonctionnalité de bienvenue est désactivée. Tapez `.welcome on` pour l'activer.");
+          }
+
+          const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+          if (mentions.length === 0) {
+            return await sendWithChannelButton(sock, from, "❌ Veuillez mentionner la personne à accueillir\nExemple : .welcome @nom");
+          }
+
+          const mentionJid = mentions[0];
+          const metadata = await getGroupMetadata(sock, from);
+          const groupName = metadata.subject || "Groupe";
+          const memberCount = metadata.participants.length;
+
+          const text = `
+┏━━━❖ 𝗖𝗘𝗡𝗧𝗥𝗔𝗟-𝗛𝗘𝗫 ❖━━━━┓
+┃ Groupe: ${groupName}
+┃ Membres: ${memberCount}
+┃
+┃ @${mentionJid.split('@')[0]}
+┃ 
+┃ *BIENVENUE PAUVRE MORTEL*
+┗━━━━━━━━━━━━━━━━━━┛
+          `.trim();
+
+          await sendWithChannelButton(sock, from, text, [mentionJid], botImageUrl);
+
+        } catch (err) {
+          console.log("welcome command error:", err);
+          await sock.sendMessage(from, { text: "❌ Une erreur est survenue" });
+        }
+      }
+    });
+
+    // ==================== COMMANDE AUTOKICK ====================
+    this.commands.set("autokick", {
+      name: "autokick",
+      description: "Active ou désactive l'autokick pour les nouveaux membres",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          return await sock.sendMessage(from, { text: "❌ Cette commande fonctionne uniquement dans les groupes" });
+        }
+
+        const option = args[0]?.toLowerCase();
+        if (!option || !["on", "off"].includes(option)) {
+          return await sock.sendMessage(from, { text: "❌ Usage : .autokick on/off" });
+        }
+
+        const configPath = path.join('./autokick.json');
+        let autokickConfig = {};
+        if (fs.existsSync(configPath)) {
+          autokickConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        }
+        autokickConfig[from] = option === 'on';
+        fs.writeFileSync(configPath, JSON.stringify(autokickConfig, null, 2));
+
+        await sendWithChannelButton(sock, from, `✅ Autokick ${option === 'on' ? 'activé' : 'désactivé'} pour ce groupe`);
+
+        const metadata = await getGroupMetadata(sock, from);
+        const knownMembers = new Set(metadata.participants.map(p => p.id));
+
+        sock.ev.on('group-participants.update', async (update) => {
+          if (update.id !== from) return;
+
+          if (update.action === 'add') {
+            for (const p of update.participants) {
+              if (!knownMembers.has(p)) {
+                knownMembers.add(p);
+
+                if (autokickConfig[from]) {
+                  try {
+                    await sock.groupParticipantsUpdate(from, [p], 'remove');
+                    await sendWithChannelButton(sock, from, `⚠️ Nouveau membre ${p.split('@')[0]} kické automatiquement`);
+                  } catch (err) {
+                    console.log("Erreur kick nouveau membre :", err);
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // ==================== COMMANDE INFO ====================
+    this.commands.set("info", {
+      name: "info",
+      description: "Affiche les informations détaillées du groupe",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          return await sock.sendMessage(from, { text: "❌ Commande réservée aux groupes" });
+        }
+
+        try {
+          const metadata = await getGroupMetadata(sock, from);
+          const participants = metadata.participants || [];
+
+          const total = participants.length;
+          const admins = participants
+            .filter(p => p.admin === "admin" || p.admin === "superadmin")
+            .map(p => `@${p.id.split("@")[0]}`)
+            .join(", ");
+
+          const groupName = metadata.subject || "Groupe sans nom";
+          const groupDesc = metadata.desc?.toString() || "Aucune description";
+          const groupId = metadata.id;
+
+          const infoText = `
+┏━━━❖ ＧＲＯＵＰ ＩＮＦＯ ❖━━━┓
+┃ Nom : ${groupName}
+┃ ID : ${groupId}
+┃ Membres : ${total}
+┃ Admins : ${admins || "Aucun"}
+┃ Description : ${groupDesc}
+┗━━━━━━━━━━━━━━━━━━━━━━┛
+*𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝗶𝗯𝗿𝗮𝗵𝗶𝗺𝗮 𝘀𝗼𝗿𝘆 𝘀𝗮𝗰𝗸𝗼*
+          `.trim();
+
+          await sendWithChannelButton(sock, from, infoText, participants
+            .filter(p => p.admin === "admin" || p.admin === "superadmin")
+            .map(p => p.id));
+
+        } catch (err) {
+          console.log("info error:", err);
+          await sock.sendMessage(from, { text: "❌ Impossible de récupérer les infos du groupe" });
+        }
+      }
+    });
+
+    // ==================== COMMANDE UPDATE ====================
+    this.commands.set("update", {
+      name: "update",
+      description: "Redémarre le bot et recharge toutes les commandes",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        await sendWithChannelButton(sock, from, "♻️ *Mise à jour en cours...*\n\n• Rechargement des commandes\n• Nettoyage de la mémoire\n• Redémarrage du bot\n\n⏳ Veuillez patienter...");
+
+        await new Promise(r => setTimeout(r, 2000));
+
+        console.log("🔄 UPDATE demandé, redémarrage du bot...");
+
+        try {
+          await sock.end();
+        } catch (e) {}
+
+        process.exit(0);
+      }
+    });
+
+    // ==================== COMMANDE TAG ====================
+    this.commands.set("tag", {
+      name: "tag",
+      description: "Mentionne tout le monde avec ton texte",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          await sendWithChannelButton(sock, from, "❌ Commande utilisable uniquement dans un groupe");
+          return;
+        }
+
+        const metadata = await getGroupMetadata(sock, from);
+        const participants = metadata.participants || [];
+
+        if (!args[0]) {
+          await sendWithChannelButton(sock, from, "❌ Usage: .tag [texte]");
+          return;
+        }
+
+        const text = args.join(" ");
+        const mentions = participants.map(p => p.id);
+
+        try {
+          await sendWithChannelButton(sock, from, text, mentions);
+        } catch (error) {
+          await sendWithChannelButton(sock, from, `❌ Erreur lors du tag: ${error.message}`);
+        }
+      }
+    });
+
+    // ==================== COMMANDE SUSPEND ====================
+    this.commands.set("suspend", {
+      name: "suspend",
+      execute: async (sock, message, args) => {
+        try {
+          if (!message.key.remoteJid.endsWith('@g.us')) {
+            return;
+          }
+
+          const groupId = message.key.remoteJid;
+          const sender = message.key.participant || message.key.remoteJid;
+          const botId = sock.user.id;
+
+          const groupMetadata = await getGroupMetadata(sock, groupId);
+          const participants = groupMetadata.participants;
+
+          // Vérifier si l'expéditeur est admin
+          const senderParticipant = participants.find(p => p.id === sender);
+          const isSenderAdmin = senderParticipant && ['admin', 'superadmin'].includes(senderParticipant.admin);
+
+          if (!isSenderAdmin) {
+            console.log(`🚫 ${sender} n'est pas admin - suspension refusée`);
+            return;
+          }
+
+          // Vérifier si le bot est admin
+          const botParticipant = participants.find(p => p.id === botId);
+          const isBotAdmin = botParticipant && ['admin', 'superadmin'].includes(botParticipant.admin);
+
+          if (!isBotAdmin) {
+            await sock.sendMessage(sender, { 
+              text: '❌ Le bot doit être administrateur pour suspendre des membres.\n\nPour rendre le bot admin :\n1. Ouvrez les infos du groupe\n2. Cliquez sur "Modifier les paramètres du groupe"\n3. Ajoutez le bot comme administrateur'
+            });
+            console.log(`⚠️ Bot non-admin dans ${groupId}`);
+            return;
+          }
+
+          // Récupérer la mention
+          const mentioned = message.message?.extendedTextMessage?.contextInfo?.mentionedJid;
+          if (!mentioned || mentioned.length === 0) {
+            await sock.sendMessage(sender, { 
+              text: '❌ Veuillez mentionner l\'utilisateur à suspendre.\nExemple: .suspend @user 30m spam' 
+            });
+            return;
+          }
+
+          const targetUser = mentioned[0];
+
+          if (targetUser === botId) {
+            await sock.sendMessage(sender, { text: '❌ Impossible de suspendre le bot.' });
+            return;
+          }
+
+          if (targetUser === sender) {
+            await sock.sendMessage(sender, { text: '❌ Vous ne pouvez pas vous suspendre vous-même.' });
+            return;
+          }
+
+          // Vérifier si la cible est admin
+          const targetParticipant = participants.find(p => p.id === targetUser);
+          const isTargetAdmin = targetParticipant && ['admin', 'superadmin'].includes(targetParticipant.admin);
+
+          if (isTargetAdmin) {
+            await sock.sendMessage(sender, { text: '❌ Impossible de suspendre un administrateur du groupe.' });
+            return;
+          }
+
+          // Parser la durée
+          const timeArg = args[1];
+          if (!timeArg) {
+            await sock.sendMessage(sender, { 
+              text: '❌ Veuillez spécifier une durée.\nExemple: 30m, 1h, 2j' 
+            });
+            return;
+          }
+
+          const timeMatch = timeArg.match(/^(\d+)([smhjd])$/i);
+          if (!timeMatch) {
+            await sock.sendMessage(sender, { 
+              text: '❌ Format de temps invalide. Utilisez: 30m, 1h, 2j, etc.' 
+            });
+            return;
+          }
+
+          const timeValue = parseInt(timeMatch[1]);
+          const timeUnit = timeMatch[2].toLowerCase();
+          const cause = args.slice(2).join(' ') || 'Non spécifiée';
+
+          let durationMs;
+          switch(timeUnit) {
+            case 's': durationMs = timeValue * 1000; break;
+            case 'm': durationMs = timeValue * 60 * 1000; break;
+            case 'h': durationMs = timeValue * 60 * 60 * 1000; break;
+            case 'j': case 'd': durationMs = timeValue * 24 * 60 * 60 * 1000; break;
+            default: durationMs = 0;
+          }
+
+          const endDate = new Date(Date.now() + durationMs);
+          const untilDate = endDate.toLocaleString('fr-FR', { 
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+
+          console.log(`✅ SUSPENSION: ${targetUser} par ${sender} pour ${durationMs}ms (${cause})`);
+
+          // Message public avec l'effet transféré
+          const suspendMessage = `
+┏━━❖ 𝚂𝚄𝚂𝙿𝙴𝙽𝚂𝙸𝙾𝙽 ❖━━┓
+┃
+┃ 👤 @${targetUser.split('@')[0]}
+┃ 📍 Groupe: ${groupMetadata.subject}
+┃ ⚠️ Cause: ${cause}
+┃ ⏱️ Jusqu'au: ${untilDate}
+┃
+┗━━━━━━━━━━━━━━━━━━━┛
+
+> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻𝙴-𝙷𝙴𝚇`;
+
+          await sendWithChannelButton(sock, groupId, suspendMessage, [targetUser]);
+
+          // Message privé
+          const privateMessage = `ⓘ Vous avez été suspendu dans le groupe ${groupMetadata.subject}\nCause: ${cause}\nJusqu'au: ${untilDate}`;
+          await sock.sendMessage(targetUser, { text: privateMessage }).catch(() => {});
+
+          // Stocker la suspension
+          if (!global.suspendedUsers) global.suspendedUsers = new Map();
+          
+          global.suspendedUsers.set(`${groupId}:${targetUser}`, {
+            groupId, userId: targetUser, adminId: sender,
+            startDate: new Date(), endDate: durationMs > 0 ? endDate : null,
+            cause, permanent: durationMs === 0
+          });
+
+          // Fin automatique
+          if (durationMs > 0) {
+            setTimeout(async () => {
+              if (global.suspendedUsers?.has(`${groupId}:${targetUser}`)) {
+                global.suspendedUsers.delete(`${groupId}:${targetUser}`);
+                await sendWithChannelButton(sock, groupId, 
+                  `⏱️ Suspension de @${targetUser.split('@')[0]} terminée.`, [targetUser]);
+              }
+            }, durationMs);
+          }
+          
+        } catch (error) {
+          console.error('❌ Erreur suspend:', error);
+          const sender = message?.key?.participant || message?.key?.remoteJid;
+          if (sender) {
+            await sock.sendMessage(sender, { text: `❌ Erreur: ${error.message}` }).catch(() => {});
+          }
+        }
+      }
+    });
+
+    // ==================== COMMANDE FAKECALL ====================
+    this.commands.set("fakecall", {
+      name: "fakecall",
+      description: "Simule un appel WhatsApp entrant",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!args[0]) {
+          return await sendWithChannelButton(sock, from, "❌ Usage : .fakecall @user\n\nExemple : .fakecall @224xxxxxxxx");
+        }
+
+        try {
+          const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] ||
+                        args[0].replace(/\D/g, "") + "@s.whatsapp.net";
+
+          const time = new Date().toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+
+          await sendWithChannelButton(sock, from, 
+            `📞 *APPEL ENTRANT*\n\n👤 Cible : @${target.split("@")[0]}\n🕒 Heure : ${time}`,
+            [target]
+          );
+
+        } catch (err) {
+          console.log("fakecall error:", err);
+          await sendWithChannelButton(sock, from, "❌ Erreur fakecall");
+        }
+      }
+    });
+   
+    // ==================== COMMANDE TAGADMIN ====================
+    this.commands.set("tagadmin", {
+      name: "tagadmin",
+      description: "Mentionne tous les admins du groupe",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        if (!from.endsWith("@g.us")) {
+          return await sendWithChannelButton(sock, from, "❌ Cette commande fonctionne uniquement dans les groupes");
+        }
+
+        try {
+          const metadata = await getGroupMetadata(sock, from);
+          const participants = metadata.participants || [];
+
+          const admins = participants.filter(p => p.admin === "admin" || p.admin === "superadmin");
+          if (admins.length === 0) {
+            return await sendWithChannelButton(sock, from, "❌ Aucun admin trouvé dans le groupe");
+          }
+
+          let text = `📣 Mention des admins :\n\n`;
+          const mentions = [];
+
+          for (const admin of admins) {
+            text += `➤ @${admin.id.split("@")[0]}\n`;
+            mentions.push(admin.id);
+          }
+
+          text += `\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻𝙴-𝙷𝙴𝚇`;
+
+          await sendWithChannelButton(sock, from, text, mentions);
+
+        } catch (err) {
+          console.log("tagadmin error:", err);
+          await sendWithChannelButton(sock, from, "❌ Impossible de récupérer les admins");
+        }
+      },
+    });
+    
+    
+// ==================== COMMANDE VV ====================
+const viewOnceStore = require('../store/viewOnceStore');
+const sendWithChannelButton = require('../utils/sendWithChannelButton');
+
+module.exports = {
+  name: "vv",
+  description: "Affiche la dernière vue unique sauvegardée",
+  
+  execute: async (sock, msg, args) => {
+    try {
+      const from = msg.key.remoteJid;
+      
+      // Vérifier si le message vient d'un groupe
+      const isGroup = from.endsWith('@g.us');
+      
+      if (!from) {
+        await sock.sendMessage(from, { text: "❌ Erreur: Impossible d'identifier le chat" });
+        return;
+      }
+
+      // Récupérer les données VV pour ce chat
+      const data = viewOnceStore.get(from);
+
+      if (!data) {
+        await sendWithChannelButton(sock, from, "❌ Aucune vue unique sauvegardée pour ce chat");
+        return;
+      }
+
+      // Vérifier si les données sont valides
+      if (!data.buffer && !data.url) {
+        await sock.sendMessage(from, { text: "❌ Données de vue unique corrompues ou expirées" });
+        // Nettoyer les données corrompues
+        viewOnceStore.delete(from);
+        return;
+      }
+
+      // Envoyer le média selon son type
+      if (data.type === 'image') {
+        await sock.sendMessage(from, {
+          image: data.buffer,
+          caption: data.caption || '📸 Vue unique sauvegardée',
+          mimetype: 'image/jpeg'
+        });
+      } 
+      else if (data.type === 'video') {
+        await sock.sendMessage(from, {
+          video: data.buffer,
+          caption: data.caption || '🎥 Vue unique sauvegardée',
+          mimetype: 'video/mp4'
+        });
+      }
+      else if (data.type === 'audio') {
+        await sock.sendMessage(from, {
+          audio: data.buffer,
+          mimetype: 'audio/mp4',
+          ptt: data.ptt || false // Pour les messages vocaux
+        });
+      }
+      else {
+        // Fallback pour les autres types
+        await sock.sendMessage(from, { 
+          text: `📎 Vue unique (${data.type || 'inconnu'}) - Impossible d'afficher directement` 
+        });
+      }
+
+      console.log(`✅ VV affichée pour ${from} - Type: ${data.type}`);
+
+    } catch (error) {
+      console.error("❌ Erreur dans la commande vv:", error);
+      try {
+        await sock.sendMessage(from, { 
+          text: "❌ Erreur lors de l'affichage de la vue unique" 
+        });
+      } catch (e) {
+        console.error("Impossible d'envoyer le message d'erreur:", e);
+      }
+    }
+  }
+};
+
+    // ==================== COMMANDE FAKERECORDING ====================
+    this.commands.set("fakerecording", {
+      name: "fakerecording",
+      description: "Active ou désactive le fake recording",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        if (!isOwner(sender)) {
+          return await sendWithChannelButton(sock, from, "❌ Commande réservée au propriétaire");
+        }
+        
+        const option = args[0]?.toLowerCase();
+        if (option === 'on') {
+          fakeRecording = true;
+          config.fakeRecording = true;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "🎤 *FAKE RECORDING ACTIVÉ*");
+        } else if (option === 'off') {
+          fakeRecording = false;
+          config.fakeRecording = false;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "🎤 *FAKE RECORDING DÉSACTIVÉ*");
+        } else {
+          await sendWithChannelButton(sock, from, `📋 *FAKE RECORDING*\n\nStatut: ${fakeRecording ? 'Activé' : 'Désactivé'}\n\nUsage:\n• .fakerecording on\n• .fakerecording off`);
+        }
+      }
+    });
+
+    // ==================== COMMANDE FAKETYPING ====================
+    this.commands.set("faketyping", {
+      name: "faketyping",
+      description: "Active ou désactive le fake typing",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        if (!isOwner(sender)) {
+          return await sendWithChannelButton(sock, from, "❌ Commande réservée au propriétaire");
+        }
+        
+        const option = args[0]?.toLowerCase();
+        if (option === 'on') {
+          fakeTyping = true;
+          config.fakeTyping = true;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "⌨️ *FAKE TYPING ACTIVÉ*");
+        } else if (option === 'off') {
+          fakeTyping = false;
+          config.fakeTyping = false;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "⌨️ *FAKE TYPING DÉSACTIVÉ*");
+        } else {
+          await sendWithChannelButton(sock, from, `📋 *FAKE TYPING*\n\nStatut: ${fakeTyping ? 'Activé' : 'Désactivé'}\n\nUsage:\n• .faketyping on\n• .faketyping off`);
+        }
+      }
+    });
+
+    // ==================== COMMANDE ONLINE ====================
+    this.commands.set("online", {
+      name: "online",
+      description: "Active ou désactive le always online",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        if (!isOwner(sender)) {
+          return await sendWithChannelButton(sock, from, "❌ Commande réservée au propriétaire");
+        }
+        
+        const option = args[0]?.toLowerCase();
+        if (option === 'on') {
+          alwaysOnline = true;
+          config.alwaysOnline = true;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "🟢 *ALWAYS ONLINE ACTIVÉ*");
+        } else if (option === 'off') {
+          alwaysOnline = false;
+          config.alwaysOnline = false;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          await sendWithChannelButton(sock, from, "🔴 *ALWAYS ONLINE DÉSACTIVÉ*");
+        } else {
+          await sendWithChannelButton(sock, from, `📋 *ALWAYS ONLINE*\n\nStatut: ${alwaysOnline ? 'Activé' : 'Désactivé'}\n\nUsage:\n• .online on\n• .online off`);
+        }
+      }
+    });
+
+    // ==================== COMMANDE MENU ====================
+    this.commands.set("menu", {
+      name: "menu",
+      description: "Affiche le menu des commandes",
+      execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+
+        const menuText = `
+        
+     𝐕𝐎𝐓𝐑𝐄 𝐁𝐎𝐓 𝐃𝐔 𝐆𝐑𝐎𝐔𝐏𝐄
+          𝐂𝐄𝐍𝐓𝐑𝐀𝐋-𝐇𝐄𝐗
+     𝐄𝐒 𝐋𝐀 𝐉𝐔𝐒𝐓𝐄 𝐏𝐎𝐔𝐑 𝐕𝐎𝐔𝐒
+    👇 👇 👇 👇 👇 👇 👇 👇 👇
+
+🥷────ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏───────🥷
+『 𝗖𝗘𝗡𝗧𝗥𝗔𝗟-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗢𝗪𝗡𝗘𝗥 → infos propriétaire
+│ Ib│➫ 𝗰𝗮𝗻𝗮𝗹 → T.me/centralhex224
+╰───────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏────────🥷
+『 𝗚𝗥𝗢𝗨𝗣𝗘-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗼𝗽𝗲𝗻 → ouvrir le groupe
+│ Ib│➫ 𝗮𝗻𝘁𝗶𝗽𝘂𝗿𝗴𝗲 on/off → purge 
+│ Ib│➫ 𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 on/off → anti lien
+│ Ib│➫ 𝗮𝗻𝘁𝗶𝘁𝗮𝗴 on/off → anti mention
+│ Ib│➫ 𝗮𝗿𝗰𝗮𝗻𝗲 on/off → protection
+│ Ib│➫ 𝗽𝘂𝗿𝗴𝗲 → purger chat
+│ Ib│➫ 𝗰𝗹𝗼𝘀𝗲𝘁𝗶𝗺𝗲 → fermer grp
+│ Ib│➫ 𝗾𝘂𝗶𝘇 → lancer quiz
+│ Ib│➫ 𝗾𝘂𝗶𝘇 𝗼𝗳𝗳 → arrêter quiz
+│ Ib│➫ 𝘀𝗵𝗶𝗺𝗺𝗲𝗿𝘀 → effet
+│ Ib│➫ 𝗺𝘂𝘁𝗲 → sourdine
+│ Ib│➫ 𝗹𝗶𝗻𝗸-𝘂𝗿𝗹 𝗴𝗿𝗼𝘂𝗽 → lien
+│ Ib│➫ 𝘁𝗮𝗴𝗮𝗹𝗹 → mention tous
+│ Ib│➫ 𝗮𝗻𝘁𝗶𝗹𝗶𝗻𝗸 → anti lien
+│ Ib│➫ 𝗶𝗻𝗳𝗼 → infos groupe
+│ Ib│➫ 𝗿𝗲𝘃𝗼𝗸𝗲 → révoquer lien
+│ Ib│➫ 𝗽𝘂𝗿𝗴𝗲𝗴𝗵𝗼𝘀𝘁 → fantômes
+│ Ib│➫ 𝗳𝗶𝗹𝘁𝗲𝗿 𝗰𝗼𝗻𝗳𝗶𝗴 → config filtres
+│ Ib│➫ 𝗳𝗶𝗹𝘁𝗲𝗿 𝗮𝗱𝗱 → ajouter filtre
+│ Ib│➫ 𝘀𝗲𝘁𝗮𝗽𝗽 → config app
+│ Ib│➫ 𝘀𝘁𝗲𝗹𝗮𝗽𝗽 @ → sticker config
+│ Ib│➫ 𝗼𝗽𝗲𝗻𝘁𝗶𝗺𝗲 → ouvrir 
+│ Ib│➫ 𝗵𝗶𝗱𝗲𝘁𝗮𝗴 → cacher mentions
+│ Ib│➫ .𝘃𝘃 → magique 👀 
+│ Ib│➫ 𝘄𝗲𝗹𝗰𝗼𝗺𝗲 on/off → bienvenue
+│ Ib│➫ 𝘁𝗮𝗴𝗮𝗱𝗺𝗶𝗻 → mention admin
+│ Ib│➫ 𝘀𝘂𝗱𝗼 → commandes sudo
+│ Ib│➫ 𝗮𝘂𝘁𝗼𝗸𝗶𝗰𝗸 on/off → kick auto
+│ Ib│➫ 𝗴𝗮𝘁𝗲 → portail owner 👀 
+│ Ib│➫ 𝘀𝗮𝘂𝘃 → sauvegarde
+│ Ib│➫ 𝗮𝗱𝗺𝗶𝗻𝗹𝗶𝘀𝘁 → liste admin
+│ Ib│➫ 𝗻𝘀𝗳𝘄 on/off → contenu NSFW
+│ Ib│➫ 𝘀𝗲𝘁𝘄𝗲𝗹𝗰𝗼𝗺𝗲 → config bienvenue
+│ Ib│➫ 𝘀𝗲𝘁𝗴𝗼𝗼𝗱𝗯𝘆𝗲 → config au revoir
+│ Ib│➫ 𝗱𝗲𝗹𝘄𝗲𝗹𝗰𝗼𝗺𝗲 → spprm bienvenue
+│ Ib│➫ 𝗱𝗲𝗹𝗴𝗼𝗼𝗱𝗯𝘆𝗲 → supprimer au revoir
+│ Ib│➫ 𝘄𝗲𝗹𝗰𝗼𝗺𝗲 𝘁𝗲𝘀𝘁 → test bienvenue
+│ Ib│➫ 𝗴𝗼𝗼𝗱𝗯𝘆𝗲 𝘁𝗲𝘀𝘁 → test au revoir
+│ Ib│➫ 𝘁𝗮𝗴𝗺𝗲 → me taguer
+│ Ib│➫ 𝘁𝗮𝗴𝗱𝗲𝘃 → tag dev
+╰────────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏────────🥷
+『 𝗣𝗥𝗢𝗣𝗥𝗜𝗘́𝗧𝗔𝗜𝗥𝗘-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗮𝗱𝗱𝗼𝘄𝗻𝗲𝗿 → ajouter owner
+│ Ib│➫ 𝗱𝗲𝗹𝗼𝘄𝗻𝗲𝗿 → supprimer owner
+│ Ib│➫ 𝗰𝗼𝗻𝗳𝗶𝗴 → config bot
+│ Ib│➫ 𝗵𝗲𝘅𝘁𝗲𝗰𝗵 → hex tech
+│ Ib│➫ 𝗳𝗮𝗸𝗲𝗰𝗮𝗹𝗹 → appel fake
+│ Ib│➫ 𝗵𝗮𝗰𝗸 → hack rapide
+│ Ib│➫ 𝘀𝗮𝘃𝗲 → sauvegarder
+│ Ib│➫ 𝗳𝗮𝗸𝗲𝗿𝗲𝗰𝗼𝗿𝗱𝗶𝗻𝗴 → faux rgtrm
+│ Ib│➫ 𝗮𝘂𝘁𝗵𝗼𝗿𝗶𝘁𝘆 → autorité
+│ Ib│➫ 𝗮𝘀𝗰𝗶𝗶 → texte ascii
+│ Ib│➫ 𝘀𝘁𝗲𝗹𝗹𝗮𝗽𝗽 → config stickers
+│ Ib│➫ .𝗸𝗶𝗰𝗸 → exclure
+│ Ib│➫ .𝗱𝗲𝗹𝗲𝘁𝗲𝗴𝗿𝗽 → supprimer groupe
+│ Ib│➫ 𝗴𝗵𝗼𝘀𝘁𝘁𝗮𝗴 → tag fantôme
+│ Ib│➫ .𝗱𝗲𝗹𝗴𝗿𝗽 → supprimer groupe
+│ Ib│➫ 𝘀𝘂𝗱𝗼𝗮𝗱𝗱 → ajouter sudo
+│ Ib│➫ 𝗱𝗲𝗹𝘀𝘂𝗱𝗼 → supprimer sudo
+│ Ib│➫ 𝗽𝗿𝗼𝗺𝗼𝘁𝗲 @ → promouvoir
+│ Ib│➫ 𝗱𝗲𝗹𝗽𝗿𝗼𝗺𝗼𝘁𝗲 @ → rétrograder
+│ Ib│➫ 𝗳𝗿𝗲𝗲𝘇𝗲 → geler membre
+│ Ib│➫ 𝗯𝗹𝗼𝗰𝗸 → bloquer
+│ Ib│➫ 𝘂𝗻𝗯𝗹𝗼𝗰𝗸 → débloquer
+│ Ib│➫ 𝘀𝗲𝘁𝗽𝗽𝗴𝗰 → photo groupe
+│ Ib│➫ 𝘀𝗲𝘁𝗯𝗶𝗼 → bio
+│ Ib│➫ 𝘀𝗲𝘁𝗻𝗮𝗺𝗲 → nom
+│ Ib│➫ 𝘀𝗲𝘁𝗱𝗲𝘀𝗰 → description
+│ Ib│➫ 𝗴𝗲𝘁𝘂𝘀𝗲𝗿 → info utilisateur
+│ Ib│➫ 𝗷𝗼𝗶𝗻 → rejoindre groupe
+│ Ib│➫ 𝗹𝗲𝗮𝘃𝗲 → quitter groupe
+│ Ib│➫ 𝗯𝗰 → broadcast
+│ Ib│➫ 𝗯𝗿𝗼𝗮𝗱𝗰𝗮𝘀𝘁 → diffusion
+│ Ib│➫ 𝗰𝗹𝗲𝗮𝗿𝗮𝗹𝗹 → tout supprimer
+│ Ib│➫ 𝗿𝗲𝘀𝘁𝗮𝗿𝘁 → redémarrer bot
+╰────────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏────────🥷
+『 𝗨𝗧𝗜𝗟𝗜𝗧𝗔𝗜𝗥𝗘-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗽𝗶𝗻𝗴 → vitesse bot
+│ Ib│➫ 𝘁𝗲𝘀𝘁 → tester bot
+│ Ib│➫ 𝗵𝗲𝗹𝗽 → aide 
+│ Ib│➫ 𝘀𝘁𝗮𝘁𝘂𝘀 → état bot
+│ Ib│➫ 𝘂𝗽𝘁𝗶𝗺𝗲 → temps
+│ Ib│➫ 𝗿𝘂𝗻𝘁𝗶𝗺𝗲 → runtime
+│ Ib│➫ 𝘀𝗽𝗲𝗲𝗱 → vitesse bot
+│ Ib│➫ 𝗰𝗼𝗻𝘁𝗮𝗰𝘁 → contact bot
+│ Ib│➫ 𝘁𝗼𝘁𝗮𝗹𝘁𝗮𝗴 → tag total
+│ Ib│➫ 𝗺𝘆𝘁𝗮𝗴 → mes tags
+│ Ib│➫ 𝗿𝗲𝗽𝗼𝗿𝘁 → problème
+│ Ib│➫ 𝗿𝗲𝗾𝘂𝗲𝘀𝘁 → fonctionnalité
+│ Ib│➫ 𝗺𝗲𝗻𝘂 → afficher menu
+╰───────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏─────────🥷
+『 𝗖𝗢𝗡𝗙𝗜𝗚-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗼𝗻𝗹𝗶𝗻𝗲 on/off → en ligne
+│ Ib│➫ 𝗴𝗲𝘁𝗶𝗱 → obtenir ID
+│ Ib│➫ 𝗮𝘂𝘁𝗼𝗿𝗲𝗰𝗼𝗿𝗱𝗶𝗻𝗴 on/off → auto
+│ Ib│➫ 𝘀𝗲𝘁𝗽𝗿𝗲𝗳𝗶𝘅 → définir préfixe
+│ Ib│➫ 𝘀𝗲𝘁𝗹𝗮𝗻𝗴 → définir langue
+│ Ib│➫ 𝗮𝘂𝘁𝗼𝗿𝗲𝗮𝗱 on/off → lecture auto
+│ Ib│➫ 𝗺𝗼𝗱𝗲 public/private → mode bot
+╰────────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏───────🥷
+『 𝗗𝗢𝗪𝗡𝗟𝗢𝗔𝗗-𝗛𝗘𝗫 』
+│ Ib│➫ 𝘀𝘁𝗶𝗰𝗸𝗲𝗿𝘀 → créer stickers
+│ Ib│➫ 𝗹𝗼𝗴𝗼 → logo
+│ Ib│➫ 𝘁𝗶𝗸𝘁𝗼𝗸 → télécharger TikTok
+│ Ib│➫ 𝘁𝘁 → TikTok
+│ Ib│➫ 𝗳𝗯 → Facebook
+│ Ib│➫ 𝗶𝗴 → Instagram
+│ Ib│➫ 𝗶𝗴𝘀𝘁𝗼𝗿𝘆 → stories IG
+│ Ib│➫ 𝘆𝘁 → YouTube
+│ Ib│➫ 𝘆𝘁𝗺𝗽3 → audio YouTube
+│ Ib│➫ 𝘆𝘁𝗺𝗽4 → vidéo YouTube
+│ Ib│➫ 𝘁𝘄𝗶𝘁𝘁𝗲𝗿 → Twitter
+│ Ib│➫ 𝘅 → X/Twitter
+│ Ib│➫ 𝘀𝗽𝗼𝘁𝗶𝗳𝘆 → Spotify
+│ Ib│➫ 𝘀𝗼𝘂𝗻𝗱𝗰𝗹𝗼𝘂𝗱 → SoundCloud
+╰──────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏───────🥷
+『 𝗠𝗘𝗗𝗜𝗔-𝗛𝗘𝗫 』
+│ Ib│➫ 𝗽𝗹𝗮𝘆 → lecture
+│ Ib│➫ 𝗽𝗹𝗮𝘆2 → lecture 2
+│ Ib│➫ 𝗽𝗹𝗮𝘆3 → lecture 3
+│ Ib│➫ 𝗴𝗳𝘅3 → effets
+│ Ib│➫ 𝗺𝘂𝘀𝗶𝗰 → musique
+│ Ib│➫ 𝘁𝗼𝗮𝘂𝗱𝗶𝗼 → convertir audio
+│ Ib│➫ 𝘁𝗼𝘃𝗶𝗱𝗲𝗼 → convertir vidéo
+│ Ib│➫ 𝘁𝗼𝗶𝗺𝗮𝗴𝗲 → convertir image
+│ Ib│➫ 𝘀𝘁𝗶𝗰𝗸𝗲𝗿 → créer sticker
+╰──────────────────🥷
+🥷──ℂ𝔼ℕ𝕋ℝ𝔸𝕃-ℍ𝔼𝕏────────🥷
+『 𝗖𝗔𝗡𝗔𝗟-𝗧𝗘𝗟𝗘𝗚𝗥𝗔𝗠-𝗛𝗘𝗫 』
+│ Ib│➫ T.me/centralhex224 → lien 
+╰───────────────────🥷
+
+> powered by IBSACKO & HEX-GAT`;
+
+        try {
+          await sendWithChannelButton(sock, from, menuText, [], botImageUrl);
+
+          // Envoyer l'audio si présent
+          try {
+            const audioPath = './1000298450.mp3';
+            if (fs.existsSync(audioPath)) {
+              await sock.sendMessage(from, {
+                audio: fs.readFileSync(audioPath),
+                mimetype: 'audio/mpeg'
+              });
+            }
+          } catch (audioError) {}
+          
+        } catch (error) {
+          console.error("❌ Erreur menu:", error);
+          await sock.sendMessage(from, { text: menuText });
+        }
+      }
+    });
+
+    // ==================== COMMANDE HELP ====================
+    this.commands.set("help", {
+      name: "help",
+      description: "Affiche l'aide",
+      execute: async (sock, msg, args, context) => {
+        const from = msg.key.remoteJid;
+        
+        const helpText = `🛠️ *AIDE CENTRALE-HEX*\n\nPrefix: ${prefix}\n\nCommandes principales:\n• ${prefix}menu - Menu complet\n• ${prefix}help - Cette aide\n• ${prefix}tag - Mention groupe\n\n👑 Propriétaire: ${config.ownerNumber}`;
+        
+        await sendWithChannelButton(sock, from, helpText);
+      }
+    });
+
+
+const BOT_START_TIME = Date.now();
+
+// ==================== PING ====================
+this.commands.set("ping", {
+  name: "ping",
+  description: "Teste la vitesse du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const start = Date.now();
+    const sentMsg = await sock.sendMessage(from, { text: "🏓 Calcul en cours..." });
+    const latency = Date.now() - start;
+    await sock.sendMessage(from, {
+      text: `🏓 *PONG!*\n\n⚡ Latence: *${latency}ms*\n🤖 Bot: CENTRAL-HEX\n✅ Statut: En ligne`,
+      edit: sentMsg.key
+    });
+  }
+});
+
+// ==================== SPEED ====================
+this.commands.set("speed", {
+  name: "speed",
+  description: "Vitesse du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const start = Date.now();
+    await sock.sendMessage(from, { text: "⚡ Calcul vitesse..." });
+    const latency = Date.now() - start;
+    await sendWithChannelButton(sock, from, `⚡ *SPEED TEST*\n\n🚀 Vitesse: ${latency}ms\n📊 Qualité: ${latency < 500 ? "Excellente 🟢" : latency < 1000 ? "Bonne 🟡" : "Faible 🔴"}`);
+  }
+});
+
+// ==================== TEST ====================
+this.commands.set("test", {
+  name: "test",
+  description: "Test le bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `✅ *BOT OPÉRATIONNEL*\n\n👤 Testeur: @${sender.split("@")[0]}\n🤖 Bot: CENTRAL-HEX\n📊 Commandes: actives\n⚡ Statut: En ligne`,
+      [sender]
+    );
+  }
+});
+
+// ==================== STATUS ====================
+this.commands.set("status", {
+  name: "status",
+  description: "État du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const uptimeMs = Date.now() - BOT_START_TIME;
+    const h = Math.floor(uptimeMs / 3600000);
+    const m = Math.floor((uptimeMs % 3600000) / 60000);
+    const s = Math.floor((uptimeMs % 60000) / 1000);
+    await sendWithChannelButton(sock, from,
+      `📊 *STATUT BOT*\n\n┌─────────────────\n│ 🤖 Bot: CENTRAL-HEX\n│ ✅ Connexion: Active\n│ ⏱️ Uptime: ${h}h ${m}m ${s}s\n│ 🔓 Mode: ${botPublic ? "Public" : "Privé"}\n│ 🎤 Fake Rec: ${fakeRecording ? "ON" : "OFF"}\n│ ⌨️ Fake Typing: ${fakeTyping ? "ON" : "OFF"}\n│ 🟢 Always Online: ${alwaysOnline ? "ON" : "OFF"}\n└─────────────────\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== UPTIME ====================
+this.commands.set("uptime", {
+  name: "uptime",
+  description: "Temps de fonctionnement",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const uptimeMs = Date.now() - BOT_START_TIME;
+    const j = Math.floor(uptimeMs / 86400000);
+    const h = Math.floor((uptimeMs % 86400000) / 3600000);
+    const m = Math.floor((uptimeMs % 3600000) / 60000);
+    const s = Math.floor((uptimeMs % 60000) / 1000);
+    await sendWithChannelButton(sock, from,
+      `⏱️ *UPTIME BOT*\n\n🕐 ${j}j ${h}h ${m}m ${s}s\n✅ Le bot tourne sans interruption.`
+    );
+  }
+});
+
+// ==================== RUNTIME ====================
+this.commands.set("runtime", {
+  name: "runtime",
+  description: "Runtime du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const uptimeMs = Date.now() - BOT_START_TIME;
+    const h = Math.floor(uptimeMs / 3600000);
+    const m = Math.floor((uptimeMs % 3600000) / 60000);
+    const s = Math.floor((uptimeMs % 60000) / 1000);
+    await sendWithChannelButton(sock, from,
+      `🕐 *RUNTIME: ${h}h ${m}m ${s}s*\n\n⚙️ Node.js: ${process.version}\n📦 Platform: ${process.platform}`
+    );
+  }
+});
+
+// ==================== GETID ====================
+this.commands.set("getid", {
+  name: "getid",
+  description: "Obtenir l'ID du groupe ou utilisateur",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    const isGroup = from.endsWith("@g.us");
+    let text = `🆔 *GET ID*\n\n`;
+    if (isGroup) {
+      text += `📍 Groupe ID: \`${from}\`\n`;
+    }
+    text += `👤 Ton ID: \`${sender}\``;
+    await sendWithChannelButton(sock, from, text);
+  }
+});
+
+// ==================== CONTACT ====================
+this.commands.set("contact", {
+  name: "contact",
+  description: "Contact du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `📱 *CONTACT BOT CENTRAL-HEX*\n\n👑 Owner: wa.me/${config.ownerNumber}\n📢 Canal Telegram: ${config.telegramLink || "https://t.me/centralhex224"}\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== REPORT ====================
+this.commands.set("report", {
+  name: "report",
+  description: "Signaler un problème",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    if (!args[0]) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .report [description du problème]");
+    }
+    const problem = args.join(" ");
+    await sendWithChannelButton(sock, from, `✅ Rapport envoyé au propriétaire.\n\n📝 Problème: ${problem}`);
+    await sock.sendMessage(OWNER_NUMBER, {
+      text: `🚨 *RAPPORT DE BUG*\n\n👤 De: @${sender.split("@")[0]}\n📍 Chat: ${from}\n📝 Problème: ${problem}`
+    }).catch(() => {});
+  }
+});
+
+// ==================== REQUEST ====================
+this.commands.set("request", {
+  name: "request",
+  description: "Demander une fonctionnalité",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    if (!args[0]) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .request [description de la fonctionnalité]");
+    }
+    const feature = args.join(" ");
+    await sendWithChannelButton(sock, from, `✅ Demande envoyée au propriétaire.\n\n💡 Fonctionnalité: ${feature}`);
+    await sock.sendMessage(OWNER_NUMBER, {
+      text: `💡 *DEMANDE DE FONCTIONNALITÉ*\n\n👤 De: @${sender.split("@")[0]}\n📍 Chat: ${from}\n💡 Demande: ${feature}`
+    }).catch(() => {});
+  }
+});
+
+// ==================== KICK ====================
+this.commands.set("kick", {
+  name: "kick",
+  description: "Exclure un membre du groupe",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne la personne à kicker\nEx: .kick @user");
+    }
+
+    try {
+      await sock.groupParticipantsUpdate(from, [target], "remove");
+      await sendWithChannelButton(sock, from,
+        `👢 *KICK*\n\n@${target.split("@")[0]} a été exclu du groupe.`,
+        [target]
+      );
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur lors du kick. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== PROMOTE ====================
+this.commands.set("promote", {
+  name: "promote",
+  description: "Promouvoir un membre en admin",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne la personne à promouvoir\nEx: .promote @user");
+    }
+
+    try {
+      await sock.groupParticipantsUpdate(from, [target], "promote");
+      await sendWithChannelButton(sock, from,
+        `⬆️ *PROMOTE*\n\n@${target.split("@")[0]} est maintenant admin ! 👑`,
+        [target]
+      );
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur promote. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== DEMOTE / DELPROMOTE ====================
+this.commands.set("demote", {
+  name: "demote",
+  description: "Rétrograder un admin",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne l'admin à rétrograder\nEx: .demote @admin");
+    }
+
+    try {
+      await sock.groupParticipantsUpdate(from, [target], "demote");
+      await sendWithChannelButton(sock, from,
+        `⬇️ *DEMOTE*\n\n@${target.split("@")[0]} n'est plus admin.`,
+        [target]
+      );
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur demote. Le bot doit être admin.");
+    }
+  }
+});
+
+this.commands.set("delpromote", {
+  name: "delpromote",
+  description: "Alias de demote",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("demote").execute(sock, msg, args);
+  }
+});
+
+// ==================== SETPPGC ====================
+this.commands.set("setppgc", {
+  name: "setppgc",
+  description: "Changer la photo du groupe",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage;
+    if (!quoted) {
+      return await sendWithChannelButton(sock, from, "❌ Réponds à une image pour changer la photo du groupe");
+    }
+
+    try {
+      const buffer = await sock.downloadMediaMessage({ message: { imageMessage: quoted } });
+      await sock.updateProfilePicture(from, buffer);
+      await sendWithChannelButton(sock, from, "🖼️ Photo du groupe changée avec succès !");
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur changement photo. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== SETDESC ====================
+this.commands.set("setdesc", {
+  name: "setdesc",
+  description: "Changer la description du groupe",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const newDesc = args.join(" ");
+    if (!newDesc) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .setdesc [nouvelle description]");
+    }
+
+    try {
+      await sock.groupUpdateDescription(from, newDesc);
+      groupMetadataCache.delete(from);
+      await sendWithChannelButton(sock, from, `✅ Description du groupe changée :\n\n${newDesc}`);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur setdesc. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== SETBIO ====================
+this.commands.set("setbio", {
+  name: "setbio",
+  description: "Changer le statut/bio du bot",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const newBio = args.join(" ");
+    if (!newBio) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .setbio [nouveau statut]");
+    }
+
+    try {
+      await sock.updateProfileStatus(newBio);
+      await sendWithChannelButton(sock, from, `✅ Bio du bot changée :\n\n${newBio}`);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur setbio.");
+    }
+  }
+});
+
+// ==================== JOIN ====================
+this.commands.set("join", {
+  name: "join",
+  description: "Rejoindre un groupe via lien",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const link = args[0];
+    if (!link || !link.includes("chat.whatsapp.com")) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .join https://chat.whatsapp.com/xxxxx");
+    }
+
+    const code = link.split("chat.whatsapp.com/")[1]?.split(" ")[0];
+    if (!code) {
+      return await sendWithChannelButton(sock, from, "❌ Lien invalide");
+    }
+
+    try {
+      await sock.groupAcceptInvite(code);
+      await sendWithChannelButton(sock, from, `✅ Bot a rejoint le groupe via le lien !`);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Impossible de rejoindre: ${err.message}`);
+    }
+  }
+});
+
+// ==================== LEAVE ====================
+this.commands.set("leave", {
+  name: "leave",
+  description: "Quitter le groupe",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    await sendWithChannelButton(sock, from, "👋 Le bot quitte ce groupe. Au revoir !");
+    await new Promise(r => setTimeout(r, 1500));
+    await sock.groupLeave(from);
+  }
+});
+
+// ==================== DELETEGRP / DELGRP ====================
+this.commands.set("deletegrp", {
+  name: "deletegrp",
+  description: "Quitter et supprimer le groupe",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    await sendWithChannelButton(sock, from, "🗑️ Suppression du groupe en cours...");
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      await sock.groupLeave(from);
+    } catch (e) {}
+  }
+});
+
+this.commands.set("delgrp", {
+  name: "delgrp",
+  description: "Alias de deletegrp",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("deletegrp").execute(sock, msg, args);
+  }
+});
+
+// ==================== BROADCAST ====================
+this.commands.set("bc", {
+  name: "bc",
+  description: "Broadcast à tous les groupes",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const text = args.join(" ");
+    if (!text) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .bc [message]");
+    }
+
+    await sendWithChannelButton(sock, from, "📢 Broadcast en cours...");
+
+    try {
+      const groups = await sock.groupFetchAllParticipating();
+      let count = 0;
+      for (const [gid] of Object.entries(groups)) {
+        try {
+          await sock.sendMessage(gid, { text: `📢 *BROADCAST*\n\n${text}\n\n> 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇` });
+          count++;
+          await new Promise(r => setTimeout(r, 800));
+        } catch (e) {}
+      }
+      await sendWithChannelButton(sock, from, `✅ Broadcast envoyé à ${count} groupes.`);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Erreur broadcast: ${err.message}`);
+    }
+  }
+});
+
+this.commands.set("broadcast", {
+  name: "broadcast",
+  description: "Alias de bc",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("bc").execute(sock, msg, args);
+  }
+});
+
+// ==================== ADMINLIST ====================
+this.commands.set("adminlist", {
+  name: "adminlist",
+  description: "Liste des admins du groupe",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const metadata = await getGroupMetadata(sock, from);
+    const admins = metadata.participants.filter(p => p.admin === "admin" || p.admin === "superadmin");
+
+    let text = `👑 *LISTE DES ADMINS*\n\n`;
+    const mentions = [];
+    for (const admin of admins) {
+      const role = admin.admin === "superadmin" ? "👑 Super Admin" : "🛡️ Admin";
+      text += `${role}: @${admin.id.split("@")[0]}\n`;
+      mentions.push(admin.id);
+    }
+    text += `\n📊 Total: ${admins.length} admin(s)`;
+    text += `\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`;
+
+    await sendWithChannelButton(sock, from, text, mentions);
+  }
+});
+
+// ==================== PURGEGHOST ====================
+this.commands.set("purgeghost", {
+  name: "purgeghost",
+  description: "Purge les membres inactifs",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const metadata = await getGroupMetadata(sock, from);
+    const groupData = global.activityTracker?.get(from) || {};
+    const now = Date.now();
+    const inactiveDays = 7;
+    const inactive = [];
+
+    for (const p of metadata.participants) {
+      if (p.admin) continue;
+      const lastActivity = groupData[p.id];
+      if (!lastActivity || (now - lastActivity) > inactiveDays * 86400000) {
+        inactive.push(p.id);
+      }
+    }
+
+    if (inactive.length === 0) {
+      return await sendWithChannelButton(sock, from, "✅ Aucun fantôme détecté ! Tous les membres ont été actifs récemment.");
+    }
+
+    await sendWithChannelButton(sock, from,
+      `👻 *PURGE FANTÔMES*\n\n📊 ${inactive.length} membre(s) inactif(s) détecté(s)\n⏳ Purge en cours...`
+    );
+
+    let purged = 0;
+    for (const uid of inactive) {
+      try {
+        await sock.groupParticipantsUpdate(from, [uid], "remove");
+        purged++;
+        await new Promise(r => setTimeout(r, 500));
+      } catch (e) {}
+    }
+
+    await sendWithChannelButton(sock, from,
+      `✅ *PURGE TERMINÉE*\n\n👻 ${purged} fantôme(s) purgé(s) sur ${inactive.length}`
+    );
+  }
+});
+
+// ==================== ANTITAG ====================
+this.commands.set("antitag", {
+  name: "antitag",
+  description: "Anti tag tous",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const option = args[0]?.toLowerCase();
+    if (!option || !["on", "off"].includes(option)) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .antitag on/off");
+    }
+
+    if (!global.antitagGroups) global.antitagGroups = new Map();
+    global.antitagGroups.set(from, option === "on");
+
+    await sendWithChannelButton(sock, from,
+      `🏷️ *ANTITAG* ${option === "on" ? "ACTIVÉ ✅" : "DÉSACTIVÉ ❌"}\n\nProtection contre les mentions de masse`
+    );
+  }
+});
+
+// ==================== ARCANE ====================
+this.commands.set("arcane", {
+  name: "arcane",
+  description: "Protection avancée du groupe",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const option = args[0]?.toLowerCase();
+    if (!option || !["on", "off"].includes(option)) {
+      return await sendWithChannelButton(sock, from,
+        `🔮 *ARCANE PROTECTION*\n\nUsage: .arcane on/off\n\nProtège le groupe contre:\n• Anti-lien\n• Anti-tag masse\n• Anti-spam`
+      );
+    }
+
+    if (!global.arcaneGroups) global.arcaneGroups = new Map();
+    global.arcaneGroups.set(from, option === "on");
+
+    await sendWithChannelButton(sock, from,
+      `🔮 *ARCANE* ${option === "on" ? "ACTIVÉ ✅" : "DÉSACTIVÉ ❌"}\n\nProtection maximale ${option === "on" ? "activée" : "désactivée"}`
+    );
+  }
+});
+
+// ==================== CLOSETIME ====================
+this.commands.set("closetime", {
+  name: "closetime",
+  description: "Fermer le groupe temporairement",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const duration = parseInt(args[0]) || 30;
+    const unit = args[1]?.toLowerCase() || "m";
+
+    let durationMs;
+    if (unit === "s") durationMs = duration * 1000;
+    else if (unit === "h") durationMs = duration * 3600000;
+    else durationMs = duration * 60000;
+
+    try {
+      await sock.groupSettingUpdate(from, "announcement");
+      await sendWithChannelButton(sock, from,
+        `🔒 *GROUPE FERMÉ*\n\n⏱️ Durée: ${duration}${unit}\n🔓 Réouverture automatique...`
+      );
+
+      setTimeout(async () => {
+        try {
+          await sock.groupSettingUpdate(from, "not_announcement");
+          await sendWithChannelButton(sock, from, "🔓 Groupe réouvert automatiquement !");
+        } catch (e) {}
+      }, durationMs);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== OPENTIME ====================
+this.commands.set("opentime", {
+  name: "opentime",
+  description: "Ouvrir le groupe temporairement",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const duration = parseInt(args[0]) || 30;
+    const unit = args[1]?.toLowerCase() || "m";
+
+    let durationMs;
+    if (unit === "s") durationMs = duration * 1000;
+    else if (unit === "h") durationMs = duration * 3600000;
+    else durationMs = duration * 60000;
+
+    try {
+      await sock.groupSettingUpdate(from, "not_announcement");
+      await sendWithChannelButton(sock, from,
+        `🔓 *GROUPE OUVERT TEMPORAIREMENT*\n\n⏱️ Durée: ${duration}${unit}\n🔒 Fermeture automatique...`
+      );
+
+      setTimeout(async () => {
+        try {
+          await sock.groupSettingUpdate(from, "announcement");
+          await sendWithChannelButton(sock, from, "🔒 Groupe refermé automatiquement !");
+        } catch (e) {}
+      }, durationMs);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, "❌ Erreur. Le bot doit être admin.");
+    }
+  }
+});
+
+// ==================== QUIZOFF ====================
+this.commands.set("quizoff", {
+  name: "quizoff",
+  description: "Arrêter le quiz",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    if (global.activeQuiz && global.activeQuiz.group === from) {
+      global.activeQuiz = null;
+      await sendWithChannelButton(sock, from, "⏹️ Quiz arrêté !");
+    } else {
+      await sendWithChannelButton(sock, from, "❌ Aucun quiz en cours.");
+    }
+  }
+});
+
+// ==================== SHIMMERS ====================
+this.commands.set("shimmers", {
+  name: "shimmers",
+  description: "Effet shimmer sur un texte",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const text = args.join(" ");
+    if (!text) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .shimmers [texte]");
+    }
+
+    const shimmerChars = ["✨", "🌟", "💫", "⭐", "🔥", "💥", "🌈"];
+    const randomEmoji = () => shimmerChars[Math.floor(Math.random() * shimmerChars.length)];
+
+    const shimmerText = text.split("").map(c => c === " " ? " " : c).join("");
+    const decorated = `${randomEmoji()} ${shimmerText} ${randomEmoji()}\n${randomEmoji()}${randomEmoji()}${randomEmoji()}`;
+
+    await sendWithChannelButton(sock, from, decorated);
+  }
+});
+
+// ==================== SETWELCOME ====================
+this.commands.set("setwelcome", {
+  name: "setwelcome",
+  description: "Configurer le message de bienvenue",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const newMsg = args.join(" ");
+    if (!newMsg) {
+      return await sendWithChannelButton(sock, from,
+        "❌ Usage: .setwelcome [message]\n\nVariables disponibles:\n• {user} = prénom\n• {group} = nom groupe\n• {count} = nb membres"
+      );
+    }
+
+    if (!global.welcomeMessages) global.welcomeMessages = new Map();
+    global.welcomeMessages.set(from, newMsg);
+
+    await sendWithChannelButton(sock, from, `✅ Message de bienvenue configuré :\n\n${newMsg}`);
+  }
+});
+
+// ==================== SETGOODBYE ====================
+this.commands.set("setgoodbye", {
+  name: "setgoodbye",
+  description: "Configurer le message d'au revoir",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const newMsg = args.join(" ");
+    if (!newMsg) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .setgoodbye [message]");
+    }
+
+    if (!global.goodbyeMessages) global.goodbyeMessages = new Map();
+    global.goodbyeMessages.set(from, newMsg);
+
+    await sendWithChannelButton(sock, from, `✅ Message d'au revoir configuré :\n\n${newMsg}`);
+  }
+});
+
+// ==================== DELWELCOME ====================
+this.commands.set("delwelcome", {
+  name: "delwelcome",
+  description: "Supprimer le message de bienvenue",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    if (global.welcomeMessages) global.welcomeMessages.delete(from);
+    await sendWithChannelButton(sock, from, "✅ Message de bienvenue supprimé.");
+  }
+});
+
+// ==================== DELGOODBYE ====================
+this.commands.set("delgoodbye", {
+  name: "delgoodbye",
+  description: "Supprimer le message au revoir",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    if (global.goodbyeMessages) global.goodbyeMessages.delete(from);
+    await sendWithChannelButton(sock, from, "✅ Message d'au revoir supprimé.");
+  }
+});
+
+// ==================== TAGME ====================
+this.commands.set("tagme", {
+  name: "tagme",
+  description: "Se tagger soi-même",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `👋 Yo @${sender.split("@")[0]} !`,
+      [sender]
+    );
+  }
+});
+
+// ==================== TAGDEV ====================
+this.commands.set("tagdev", {
+  name: "tagdev",
+  description: "Tagger le développeur",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `👨‍💻 *DÉVELOPPEUR DE CENTRAL-HEX*\n\n⚡ Développé par: IBSACKO\n📢 Canal: https://t.me/centralhex224\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== SUDO ====================
+this.commands.set("sudo", {
+  name: "sudo",
+  description: "Liste des utilisateurs sudo",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sudoList = global.sudoUsers || [];
+
+    if (sudoList.length === 0) {
+      return await sendWithChannelButton(sock, from, "📋 *LISTE SUDO*\n\nAucun utilisateur sudo.");
+    }
+
+    let text = `📋 *LISTE SUDO*\n\n`;
+    for (const uid of sudoList) {
+      text += `• @${uid.split("@")[0]}\n`;
+    }
+    text += `\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`;
+
+    await sendWithChannelButton(sock, from, text, sudoList);
+  }
+});
+
+// ==================== SUDOADD ====================
+this.commands.set("sudoadd", {
+  name: "sudoadd",
+  description: "Ajouter un utilisateur sudo",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne l'utilisateur à ajouter en sudo");
+    }
+
+    if (!global.sudoUsers) global.sudoUsers = [];
+    if (!global.sudoUsers.includes(target)) {
+      global.sudoUsers.push(target);
+    }
+
+    await sendWithChannelButton(sock, from,
+      `✅ @${target.split("@")[0]} ajouté aux sudo !`,
+      [target]
+    );
+  }
+});
+
+// ==================== DELSUDO ====================
+this.commands.set("delsudo", {
+  name: "delsudo",
+  description: "Retirer un utilisateur sudo",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne l'utilisateur à retirer");
+    }
+
+    if (global.sudoUsers) {
+      global.sudoUsers = global.sudoUsers.filter(u => u !== target);
+    }
+
+    await sendWithChannelButton(sock, from,
+      `✅ @${target.split("@")[0]} retiré des sudo !`,
+      [target]
+    );
+  }
+});
+
+// ==================== ADDOWNER ====================
+this.commands.set("addowner", {
+  name: "addowner",
+  description: "Ajouter un propriétaire",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner principal seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne l'utilisateur à ajouter comme owner");
+    }
+
+    if (!global.extraOwners) global.extraOwners = [];
+    if (!global.extraOwners.includes(target)) {
+      global.extraOwners.push(target);
+    }
+
+    await sendWithChannelButton(sock, from,
+      `👑 @${target.split("@")[0]} ajouté comme propriétaire !`,
+      [target]
+    );
+  }
+});
+
+// ==================== DELOWNER ====================
+this.commands.set("delowner", {
+  name: "delowner",
+  description: "Retirer un propriétaire",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner principal seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne l'owner à retirer");
+    }
+
+    if (global.extraOwners) {
+      global.extraOwners = global.extraOwners.filter(u => u !== target);
+    }
+
+    await sendWithChannelButton(sock, from,
+      `✅ @${target.split("@")[0]} retiré des owners.`,
+      [target]
+    );
+  }
+});
+
+// ==================== CONFIG ====================
+this.commands.set("config", {
+  name: "config",
+  description: "Afficher la configuration du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    await sendWithChannelButton(sock, from,
+      `⚙️ *CONFIG BOT CENTRAL-HEX*\n\n` +
+      `┌─────────────────\n` +
+      `│ 🔑 Prefix: ${config.prefix}\n` +
+      `│ 👑 Owner: ${config.ownerNumber}\n` +
+      `│ 🔓 Mode: ${botPrivé ? "Public" : "Privé"}\n` +
+      `│ 🎤 Fake Rec: ${fakeRecording ? "ON" : "OFF"}\n` +
+      `│ ⌨️ Fake Typing: ${fakeTyping ? "ON" : "OFF"}\n` +
+      `│ 🟢 Always Online: ${alwaysOnline ? "ON" : "OFF"}\n` +
+      `│ 🔗 Anti-Link: ${config.antiLink ? "ON" : "OFF"}\n` +
+      `│ 📢 Canal: ${config.telegramLink}\n` +
+      `└─────────────────\n\n` +
+      `> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== HEXTECH ====================
+this.commands.set("hextech", {
+  name: "hextech",
+  description: "Informations techniques",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const mem = process.memoryUsage();
+    const memMB = Math.round(mem.rss / 1024 / 1024);
+    const uptimeMs = Date.now() - BOT_START_TIME;
+    const h = Math.floor(uptimeMs / 3600000);
+    const m = Math.floor((uptimeMs % 3600000) / 60000);
+
+    await sendWithChannelButton(sock, from,
+      `🔬 *CENTRAL-HEX INFO*\n\n` +
+      `┌─────────────────\n` +
+      `│ 🤖 Bot: CENTRAL-HEX\n` +
+      `│ ⚙️ Node: ${process.version}\n` +
+      `│ 📦 Platform: ${process.platform}\n` +
+      `│ 💾 RAM: ${memMB} MB\n` +
+      `│ ⏱️ Uptime: ${h}h ${m}m\n` +
+      `│ 📊 Messages en cache: ${messageStore.size}\n` +
+      `└─────────────────\n\n` +
+      `> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== HACK ====================
+this.commands.set("hack", {
+  name: "hack",
+  description: "Effet hack animé",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    const targetName = target ? `@${target.split("@")[0]}` : (args[0] || "la cible");
+
+    const hackLines = [
+      `💻 *HACK CENTRAL-HEX*\n\n🔍 Initialisation...\n[██░░░░░░░░] 20%`,
+      `💻 *HACK CENTRAL-HEX*\n\n🔍 Scan IP...\n[████░░░░░░] 40%`,
+      `💻 *HACK CENTRAL-HEX*\n\n🔓 Bypass firewall...\n[██████░░░░] 60%`,
+      `💻 *HACK CENTRAL-HEX*\n\n📂 Accès données...\n[████████░░] 80%`,
+      `💻 *HACK CENTRAL-HEX*\n\n✅ HACK RÉUSSI !\n[██████████] 100%\n\n👤 Cible: ${targetName}\n📍 Localisation: Inconnue\n\n> *⚠️ Ceci est une simulation - Pour rire !*`
+    ];
+
+    const sentMsg = await sock.sendMessage(from, { text: hackLines[0] });
+    for (let i = 1; i < hackLines.length; i++) {
+      await new Promise(r => setTimeout(r, 1200));
+      await sock.sendMessage(from, { text: hackLines[i], edit: sentMsg.key });
+    }
+  }
+});
+
+// ==================== ASCII ====================
+this.commands.set("ascii", {
+  name: "ascii",
+  description: "Convertit du texte en ASCII stylé",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const text = args.join(" ");
+
+    if (!text) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .ascii [texte]");
+    }
+
+    const asciiMap = {
+      'a':'𝒶','b':'𝒷','c':'𝒸','d':'𝒹','e':'𝑒','f':'𝒻','g':'𝑔','h':'𝒽','i':'𝒾',
+      'j':'𝒿','k':'𝓀','l':'𝓁','m':'𝓂','n':'𝓃','o':'𝑜','p':'𝓅','q':'𝓆','r':'𝓇',
+      's':'𝓈','t':'𝓉','u':'𝓊','v':'𝓋','w':'𝓌','x':'𝓍','y':'𝓎','z':'𝓏',
+      'A':'𝒜','B':'𝐵','C':'𝒞','D':'𝒟','E':'𝐸','F':'𝐹','G':'𝒢','H':'𝐻','I':'𝐼',
+      'J':'𝒥','K':'𝒦','L':'𝐿','M':'𝑀','N':'𝒩','O':'𝒪','P':'𝒫','Q':'𝒬','R':'𝑅',
+      'S':'𝒮','T':'𝒯','U':'𝒰','V':'𝒱','W':'𝒲','X':'𝒳','Y':'𝒴','Z':'𝒵'
+    };
+
+    const styled = text.split("").map(c => asciiMap[c] || c).join("");
+    await sendWithChannelButton(sock, from, `✨ *ASCII STYLE*\n\n${styled}`);
+  }
+});
+
+// ==================== AUTHORITY ====================
+this.commands.set("authority", {
+  name: "authority",
+  description: "Afficher les autorités du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    const ownerList = [config.ownerNumber, ...(global.extraOwners || [])];
+    const sudoList = global.sudoUsers || [];
+
+    let text = `⚔️ *SYSTÈME D'AUTORITÉ*\n\n`;
+    text += `👑 *OWNERS (${ownerList.length}):*\n`;
+    for (const o of ownerList) {
+      text += `• +${o.replace(/\D/g,'')}\n`;
+    }
+    text += `\n🔰 *SUDO (${sudoList.length}):*\n`;
+    if (sudoList.length === 0) {
+      text += `• Aucun sudo\n`;
+    } else {
+      for (const s of sudoList) {
+        text += `• @${s.split("@")[0]}\n`;
+      }
+    }
+    text += `\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`;
+
+    await sendWithChannelButton(sock, from, text, sudoList);
+  }
+});
+
+// ==================== GETUSER ====================
+this.commands.set("getuser", {
+  name: "getuser",
+  description: "Informations sur un utilisateur",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    let targetJid;
+
+    if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]) {
+      targetJid = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
+    } else if (args[0]) {
+      targetJid = args[0].replace(/\D/g, "") + "@s.whatsapp.net";
+    } else {
+      targetJid = msg.key.participant || msg.key.remoteJid;
+    }
+
+    try {
+      let ppUrl;
+      try {
+        ppUrl = await sock.profilePictureUrl(targetJid, "image");
+      } catch {
+        ppUrl = null;
+      }
+
+      const text = `👤 *INFO UTILISATEUR*\n\n` +
+        `┌─────────────────\n` +
+        `│ 📱 Numéro: +${targetJid.split("@")[0]}\n` +
+        `│ 🆔 JID: ${targetJid}\n` +
+        `│ 🖼️ Photo: ${ppUrl ? "Disponible" : "Privée/Indisponible"}\n` +
+        `│ 👑 Owner: ${isOwner(targetJid) ? "Oui" : "Non"}\n` +
+        `└─────────────────\n\n` +
+        `> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`;
+
+      await sendWithChannelButton(sock, from, text, [targetJid], ppUrl);
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Erreur: ${err.message}`);
+    }
+  }
+});
+
+// ==================== SAVE ====================
+this.commands.set("save", {
+  name: "save",
+  description: "Sauvegarder la configuration",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    try {
+      fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+      await sendWithChannelButton(sock, from, "✅ Configuration sauvegardée avec succès !");
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Erreur sauvegarde: ${err.message}`);
+    }
+  }
+});
+
+// ==================== SAUV ====================
+this.commands.set("sauv", {
+  name: "sauv",
+  description: "Alias de save",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("save").execute(sock, msg, args);
+  }
+});
+
+// ==================== GATE ====================
+this.commands.set("gate", {
+  name: "gate",
+  description: "Portail owner",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Accès refusé. Owner seulement.");
+    }
+
+    const uptimeMs = Date.now() - BOT_START_TIME;
+    const h = Math.floor(uptimeMs / 3600000);
+    const m = Math.floor((uptimeMs % 3600000) / 60000);
+    const mem = Math.round(process.memoryUsage().rss / 1024 / 1024);
+
+    await sendWithChannelButton(sock, from,
+      `🚪 *PORTAIL OWNER - CENTRAL-HEX*\n\n` +
+      `┌─────────────────\n` +
+      `│ 🤖 Bot: CENTRAL-HEX\n` +
+      `│ 👑 Owner: ${config.ownerNumber}\n` +
+      `│ ⏱️ Uptime: ${h}h ${m}m\n` +
+      `│ 💾 RAM: ${mem} MB\n` +
+      `│ 🔓 Mode: ${botPrivé ? "Public" : "Privé"}\n` +
+      `│ 📋 Commandes actives\n` +
+      `│ 🔰 Sudo: ${(global.sudoUsers || []).length}\n` +
+      `│ 👥 Extra Owners: ${(global.extraOwners || []).length}\n` +
+      `└─────────────────\n\n` +
+      `> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== NSFW ====================
+this.commands.set("nsfw", {
+  name: "nsfw",
+  description: "Activer/désactiver le contenu NSFW",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const option = args[0]?.toLowerCase();
+    if (!option || !["on", "off"].includes(option)) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .nsfw on/off");
+    }
+
+    if (!global.nsfwGroups) global.nsfwGroups = new Map();
+    global.nsfwGroups.set(from, option === "on");
+
+    await sendWithChannelButton(sock, from,
+      `🔞 *NSFW* ${option === "on" ? "ACTIVÉ ✅" : "DÉSACTIVÉ ❌"}\n\n${option === "on" ? "⚠️ Contenu adulte autorisé dans ce groupe." : "✅ Contenu adulte désactivé."}`
+    );
+  }
+});
+
+// ==================== FREEZE ====================
+this.commands.set("freeze", {
+  name: "freeze",
+  description: "Geler un membre (mute temporaire)",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) {
+      return await sendWithChannelButton(sock, from, "❌ Groupe uniquement");
+    }
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    const target = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    if (!target) {
+      return await sendWithChannelButton(sock, from, "❌ Mentionne la personne à geler\nEx: .freeze @user 5m");
+    }
+
+    const duration = parseInt(args[1]) || 5;
+    const unit = args[2]?.toLowerCase() || "m";
+    let durationMs = duration * 60000;
+    if (unit === "s") durationMs = duration * 1000;
+    else if (unit === "h") durationMs = duration * 3600000;
+
+    if (!global.frozenUsers) global.frozenUsers = new Map();
+    global.frozenUsers.set(`${from}:${target}`, Date.now() + durationMs);
+
+    await sendWithChannelButton(sock, from,
+      `🧊 *FREEZE*\n\n@${target.split("@")[0]} est gelé pour ${duration}${unit} !\nIl ne peut plus envoyer de messages.`,
+      [target]
+    );
+
+    setTimeout(() => {
+      if (global.frozenUsers) global.frozenUsers.delete(`${from}:${target}`);
+      sock.sendMessage(from, { text: `🧊 @${target.split("@")[0]} est dégelé !`, mentions: [target] }).catch(() => {});
+    }, durationMs);
+  }
+});
+
+// ==================== GHOSTTAG ====================
+this.commands.set("ghosttag", {
+  name: "ghosttag",
+  description: "Tagger discrètement un membre",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+
+    if (!from.endsWith("@g.us")) return;
+
+    const metadata = await getGroupMetadata(sock, from);
+    const mentions = metadata.participants.map(p => p.id);
+    const text = args.join(" ") || "\u200B";
+
+    await sock.sendMessage(from, {
+      text: text,
+      mentions
+    });
+  }
+});
+
+// ==================== CLEARALL ====================
+this.commands.set("clearall", {
+  name: "clearall",
+  description: "Vider le cache des messages",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const count = messageStore.size;
+    messageStore.clear();
+
+    await sendWithChannelButton(sock, from, `🗑️ Cache vidé !\n\n📊 ${count} message(s) supprimé(s) du cache.`);
+  }
+});
+
+// ==================== MODE ====================
+this.commands.set("mode", {
+  name: "mode",
+  description: "Changer le mode public/privé",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const option = args[0]?.toLowerCase();
+    if (!option || !["public", "private", "prive"].includes(option)) {
+      return await sendWithChannelButton(sock, from, `❌ Usage: .mode public/private\n\nMode actuel: ${botPrivé ? "Public" : "Privé"}`);
+    }
+
+    if (option === "privé") {
+      botPublic = true;
+      config.botPublic = true;
+    } else {
+      botPublic = false;
+      config.botPublic = false;
+    }
+
+    fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+    await sendWithChannelButton(sock, from, `✅ Mode changé en : *${botPrivé ? "PUBLIC 🔓" : "PRIVÉ 🔒"}*`);
+  }
+});
+
+// ==================== SETPREFIX ====================
+this.commands.set("setprefix", {
+  name: "setprefix",
+  description: "Changer le préfixe du bot",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const newPrefix = args[0];
+    if (!newPrefix) {
+      return await sendWithChannelButton(sock, from, `❌ Usage: .setprefix [nouveau prefix]\n\nPréfixe actuel: ${prefix}`);
+    }
+
+    config.prefix = newPrefix;
+    fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+    await sendWithChannelButton(sock, from,
+      `✅ Préfixe changé en: *${newPrefix}*\n\n⚠️ Redémarrez le bot pour appliquer le nouveau préfixe.`
+    );
+  }
+});
+
+// ==================== SETLANG ====================
+this.commands.set("setlang", {
+  name: "setlang",
+  description: "Changer la langue du bot",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const lang = args[0]?.toLowerCase();
+    const supported = ["fr", "en", "ar"];
+
+    if (!lang || !supported.includes(lang)) {
+      return await sendWithChannelButton(sock, from, `❌ Usage: .setlang [lang]\n\nLangues disponibles: ${supported.join(", ")}`);
+    }
+
+    config.language = lang;
+    fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+    await sendWithChannelButton(sock, from, `✅ Langue changée en: *${lang.toUpperCase()}*`);
+  }
+});
+
+// ==================== AUTOREAD ====================
+this.commands.set("autoread", {
+  name: "autoread",
+  description: "Activer/désactiver la lecture automatique",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const option = args[0]?.toLowerCase();
+    if (!option || !["on", "off"].includes(option)) {
+      return await sendWithChannelButton(sock, from, `❌ Usage: .autoread on/off\n\nStatut actuel: ${config.autoRead ? "ON" : "OFF"}`);
+    }
+
+    config.autoRead = option === "on";
+    fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+    await sendWithChannelButton(sock, from, `📖 *AUTOREAD* ${option === "on" ? "ACTIVÉ ✅" : "DÉSACTIVÉ ❌"}`);
+  }
+});
+
+// ==================== AUTORECORDING ====================
+this.commands.set("autorecording", {
+  name: "autorecording",
+  description: "Alias de fakerecording",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("fakerecording").execute(sock, msg, args);
+  }
+});
+
+// ==================== MYTAG ====================
+this.commands.set("mytag", {
+  name: "mytag",
+  description: "Voir combien de fois tu as été tagué",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+    if (!global.tagCount) global.tagCount = new Map();
+    const count = global.tagCount.get(sender) || 0;
+    await sendWithChannelButton(sock, from,
+      `🏷️ *MES STATS TAG*\n\n👤 @${sender.split("@")[0]}\n📊 Tagué: ${count} fois`,
+      [sender]
+    );
+  }
+});
+
+// ==================== TOTALTAG ====================
+this.commands.set("totaltag", {
+  name: "totaltag",
+  description: "Statistiques totales des tags",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    if (!global.tagCount || global.tagCount.size === 0) {
+      return await sendWithChannelButton(sock, from, "📊 *TOTAL TAG*\n\nAucune statistique disponible.");
+    }
+    let text = `📊 *TOTAL TAGS*\n\n`;
+    let sorted = [...global.tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const mentions = [];
+    for (const [uid, count] of sorted) {
+      text += `• @${uid.split("@")[0]}: ${count} tags\n`;
+      mentions.push(uid);
+    }
+    text += `\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`;
+    await sendWithChannelButton(sock, from, text, mentions);
+  }
+});
+
+// ==================== FILTER ====================
+this.commands.set("filter", {
+  name: "filter",
+  description: "Gestion des filtres de mots",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    const isAdmin = await isAdminInGroup(sock, from, sender);
+    if (!isAdmin && !isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Admins seulement");
+    }
+
+    if (!global.wordFilters) global.wordFilters = new Map();
+    const groupFilters = global.wordFilters.get(from) || [];
+
+    const sub = args[0]?.toLowerCase();
+
+    if (sub === "add") {
+      const word = args.slice(1).join(" ");
+      if (!word) return await sendWithChannelButton(sock, from, "❌ Usage: .filter add [mot]");
+      if (!groupFilters.includes(word)) groupFilters.push(word);
+      global.wordFilters.set(from, groupFilters);
+      await sendWithChannelButton(sock, from, `✅ Mot filtré ajouté: "${word}"`);
+
+    } else if (sub === "del" || sub === "remove") {
+      const word = args.slice(1).join(" ");
+      const idx = groupFilters.indexOf(word);
+      if (idx > -1) groupFilters.splice(idx, 1);
+      global.wordFilters.set(from, groupFilters);
+      await sendWithChannelButton(sock, from, `✅ Mot filtré supprimé: "${word}"`);
+
+    } else if (sub === "config" || sub === "list") {
+      if (groupFilters.length === 0) {
+        return await sendWithChannelButton(sock, from, "📋 *FILTRES*\n\nAucun mot filtré dans ce groupe.");
+      }
+      await sendWithChannelButton(sock, from,
+        `📋 *FILTRES ACTIFS (${groupFilters.length})*\n\n${groupFilters.map((w, i) => `${i+1}. ${w}`).join("\n")}`
+      );
+
+    } else {
+      await sendWithChannelButton(sock, from,
+        `📋 *FILTRE*\n\nUsage:\n• .filter add [mot] - Ajouter\n• .filter del [mot] - Supprimer\n• .filter config - Liste\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+      );
+    }
+  }
+});
+
+// ==================== SETAPP ====================
+this.commands.set("setapp", {
+  name: "setapp",
+  description: "Config de l'application bot",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
+
+    if (!isOwner(sender)) {
+      return await sendWithChannelButton(sock, from, "❌ Owner seulement");
+    }
+
+    const sub = args[0]?.toLowerCase();
+    if (!sub) {
+      return await sendWithChannelButton(sock, from,
+        `⚙️ *SETAPP*\n\nUsage:\n• .setapp name [nom]\n• .setapp img [url]\n• .setapp channel [url]`
+      );
+    }
+
+    if (sub === "name") {
+      config.channelName = args.slice(1).join(" ");
+      fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+      await sendWithChannelButton(sock, from, `✅ Nom de la chaîne: ${config.channelName}`);
+    } else if (sub === "img") {
+      config.botImageUrl = args[1];
+      fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+      await sendWithChannelButton(sock, from, "✅ Image bot mise à jour");
+    } else if (sub === "channel") {
+      config.telegramLink = args[1];
+      fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+      await sendWithChannelButton(sock, from, `✅ Canal: ${config.telegramLink}`);
+    }
+  }
+});
+
+// ==================== STELLAPP ====================
+this.commands.set("stellapp", {
+  name: "stellapp",
+  description: "Voir les infos de l'application bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `📱 *APP INFO - CENTRAL-HEX*\n\n` +
+      `┌─────────────────\n` +
+      `│ 🤖 Nom: CENTRAL-HEX\n` +
+      `│ 📢 Canal: ${config.telegramLink}\n` +
+      `│ 🖼️ Image: Configurée\n` +
+      `│ 🔑 Prefix: ${config.prefix}\n` +
+      `└─────────────────\n\n` +
+      `> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`,
+      [], botImageUrl
+    );
+  }
+});
+
+// ==================== STICKER ====================
+this.commands.set("sticker", {
+  name: "sticker",
+  description: "Créer un sticker depuis une image/vidéo",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+
+    const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+    if (!quoted) {
+      return await sendWithChannelButton(sock, from,
+        "❌ Réponds à une image ou vidéo pour créer un sticker\n\nEx: Réponds à une image avec .sticker"
+      );
+    }
+
+    const imageMsg = quoted?.imageMessage;
+    const videoMsg = quoted?.videoMessage;
+
+    if (!imageMsg && !videoMsg) {
+      return await sendWithChannelButton(sock, from, "❌ Réponds à une image ou vidéo");
+    }
+
+    try {
+      await sendWithChannelButton(sock, from, "⏳ Création du sticker en cours...");
+
+      if (imageMsg) {
+        const stream = await downloadContentFromMessage(imageMsg, "image");
+        let buffer = Buffer.from([]);
+        for await (const chunk of stream) {
+          buffer = Buffer.concat([buffer, chunk]);
+        }
+
+        await sock.sendMessage(from, {
+          sticker: buffer
+        });
+      } else {
+        await sendWithChannelButton(sock, from, "⚠️ Les vidéos nécessitent ffmpeg. Utilisez une image.");
+      }
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Erreur création sticker: ${err.message}`);
+    }
+  }
+});
+
+// ==================== TIKTOK / TT ====================
+this.commands.set("tiktok", {
+  name: "tiktok",
+  description: "Télécharger une vidéo TikTok",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url || !url.includes("tiktok")) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .tiktok [lien TikTok]\nEx: .tiktok https://vm.tiktok.com/xxxxx");
+    }
+    await sendWithChannelButton(sock, from,
+      `📥 *TÉLÉCHARGEMENT TIKTOK*\n\n🔗 URL: ${url}\n⏳ Téléchargement en cours...\n\n⚠️ Fonctionnalité API requise - Contactez l'owner pour l'activer.`
+    );
+  }
+});
+
+this.commands.set("tt", {
+  name: "tt",
+  description: "Alias tiktok",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("tiktok").execute(sock, msg, args);
+  }
+});
+
+// ==================== YOUTUBE / YT ====================
+this.commands.set("yt", {
+  name: "yt",
+  description: "Télécharger une vidéo YouTube",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const query = args.join(" ");
+    if (!query) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .yt [lien ou recherche]");
+    }
+    await sendWithChannelButton(sock, from,
+      `📺 *YOUTUBE*\n\n🔍 Recherche: ${query}\n\n⚠️ Fonctionnalité API requise.\nUtilisez .ytmp3 ou .ytmp4 avec un lien direct.`
+    );
+  }
+});
+
+// ==================== YTMP3 ====================
+this.commands.set("ytmp3", {
+  name: "ytmp3",
+  description: "Télécharger audio YouTube",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url || !url.includes("youtube") && !url.includes("youtu.be")) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .ytmp3 [lien YouTube]\nEx: .ytmp3 https://youtu.be/xxxxx");
+    }
+    await sendWithChannelButton(sock, from,
+      `🎵 *YTMP3*\n\n🔗 URL: ${url}\n⏳ Conversion en cours...\n\n⚠️ Module ytdl-core requis.\nInstallez: npm install ytdl-core`
+    );
+  }
+});
+
+// ==================== YTMP4 ====================
+this.commands.set("ytmp4", {
+  name: "ytmp4",
+  description: "Télécharger vidéo YouTube",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url || !url.includes("youtube") && !url.includes("youtu.be")) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .ytmp4 [lien YouTube]");
+    }
+    await sendWithChannelButton(sock, from,
+      `🎬 *YTMP4*\n\n🔗 URL: ${url}\n⏳ Téléchargement en cours...\n\n⚠️ Module ytdl-core requis.\nInstallez: npm install ytdl-core`
+    );
+  }
+});
+
+// ==================== FACEBOOK / FB ====================
+this.commands.set("fb", {
+  name: "fb",
+  description: "Télécharger vidéo Facebook",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .fb [lien Facebook]");
+    }
+    await sendWithChannelButton(sock, from,
+      `📘 *FACEBOOK DL*\n\n🔗 URL: ${url}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+// ==================== INSTAGRAM / IG ====================
+this.commands.set("ig", {
+  name: "ig",
+  description: "Télécharger depuis Instagram",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url || !url.includes("instagram")) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .ig [lien Instagram]");
+    }
+    await sendWithChannelButton(sock, from,
+      `📷 *INSTAGRAM DL*\n\n🔗 URL: ${url}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+// ==================== IGSTORY ====================
+this.commands.set("igstory", {
+  name: "igstory",
+  description: "Télécharger une story Instagram",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .igstory [lien story Instagram]");
+    }
+    await sendWithChannelButton(sock, from,
+      `📷 *IG STORY DL*\n\n🔗 URL: ${url}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+// ==================== TWITTER / X ====================
+this.commands.set("twitter", {
+  name: "twitter",
+  description: "Télécharger depuis Twitter/X",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .twitter [lien Twitter/X]");
+    }
+    await sendWithChannelButton(sock, from,
+      `🐦 *TWITTER DL*\n\n🔗 URL: ${url}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+this.commands.set("x", {
+  name: "x",
+  description: "Alias twitter",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("twitter").execute(sock, msg, args);
+  }
+});
+
+// ==================== SPOTIFY ====================
+this.commands.set("spotify", {
+  name: "spotify",
+  description: "Télécharger depuis Spotify",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const query = args.join(" ");
+    if (!query) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .spotify [titre ou lien]");
+    }
+    await sendWithChannelButton(sock, from,
+      `🎵 *SPOTIFY DL*\n\n🔍 Recherche: ${query}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+// ==================== SOUNDCLOUD ====================
+this.commands.set("soundcloud", {
+  name: "soundcloud",
+  description: "Télécharger depuis SoundCloud",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const url = args[0];
+    if (!url) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .soundcloud [lien SoundCloud]");
+    }
+    await sendWithChannelButton(sock, from,
+      `🔊 *SOUNDCLOUD DL*\n\n🔗 URL: ${url}\n\n⚠️ Fonctionnalité API requise.`
+    );
+  }
+});
+
+// ==================== PLAY ====================
+this.commands.set("play", {
+  name: "play",
+  description: "Jouer de la musique",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const query = args.join(" ");
+    if (!query) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .play [titre]\nEx: .play Afrobeats mix 2025");
+    }
+    await sendWithChannelButton(sock, from,
+      `🎵 *PLAY*\n\n🔍 Recherche: ${query}\n⏳ Chargement...\n\n⚠️ Module ytdl-core requis pour cette fonctionnalité.`
+    );
+  }
+});
+
+this.commands.set("play2", {
+  name: "play2",
+  description: "Jouer musique (mode 2)",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("play").execute(sock, msg, args);
+  }
+});
+
+this.commands.set("play3", {
+  name: "play3",
+  description: "Jouer musique (mode 3)",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("play").execute(sock, msg, args);
+  }
+});
+
+// ==================== MUSIC ====================
+this.commands.set("music", {
+  name: "music",
+  description: "Rechercher de la musique",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const query = args.join(" ");
+    if (!query) {
+      return await sendWithChannelButton(sock, from, "❌ Usage: .music [titre]");
+    }
+    await sendWithChannelButton(sock, from,
+      `🎶 *MUSIC SEARCH*\n\n🔍 Titre: ${query}\n\n⚠️ Utilisez .ytmp3 [lien YouTube] pour télécharger un audio.`
+    );
+  }
+});
+
+// ==================== TOAUDIO ====================
+this.commands.set("toaudio", {
+  name: "toaudio",
+  description: "Convertir vidéo en audio",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `🔄 *TOAUDIO*\n\nRéponds à une vidéo avec .toaudio pour la convertir en audio.\n\n⚠️ Nécessite ffmpeg installé sur le serveur.`
+    );
+  }
+});
+
+// ==================== TOVIDEO ====================
+this.commands.set("tovideo", {
+  name: "tovideo",
+  description: "Convertir en vidéo",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `🎬 *TOVIDEO*\n\nRéponds à un média avec .tovideo pour le convertir en vidéo.\n\n⚠️ Nécessite ffmpeg installé sur le serveur.`
+    );
+  }
+});
+
+// ==================== TOIMAGE ====================
+this.commands.set("toimage", {
+  name: "toimage",
+  description: "Convertir sticker en image",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+
+    if (!quoted?.stickerMessage) {
+      return await sendWithChannelButton(sock, from, "❌ Réponds à un sticker avec .toimage");
+    }
+
+    try {
+      const stream = await downloadContentFromMessage(quoted.stickerMessage, "sticker");
+      let buffer = Buffer.from([]);
+      for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+
+      await sock.sendMessage(from, { image: buffer, caption: "✅ Sticker converti en image !" });
+    } catch (err) {
+      await sendWithChannelButton(sock, from, `❌ Erreur conversion: ${err.message}`);
+    }
+  }
+});
+
+// ==================== GFX3 ====================
+this.commands.set("gfx3", {
+  name: "gfx3",
+  description: "Effets graphiques",
+  execute: async (sock, msg, args) => {
+    const from = msg.key.remoteJid;
+    const text = args.join(" ") || "CENTRAL HEX";
+
+    const effects = [
+      `🌈 ${text.split("").join(" ")} 🌈`,
+      `⚡ ${text.toUpperCase()} ⚡`,
+      `🔥 ${text} 🔥\n✨ ${"-".repeat(text.length)} ✨`,
+    ];
+    const effect = effects[Math.floor(Math.random() * effects.length)];
+    await sendWithChannelButton(sock, from, `🎨 *GFX EFFECT*\n\n${effect}\n\n> 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`);
+  }
+});
+
+// ==================== STICKERS (alias) ====================
+this.commands.set("stickers", {
+  name: "stickers",
+  description: "Alias de sticker",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("sticker").execute(sock, msg, args);
+  }
+});
+
+// ==================== LOGO ====================
+this.commands.set("logo", {
+  name: "logo",
+  description: "Envoyer le logo du bot",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `🤖 *CENTRAL-HEX*\n\n👾 Votre bot WhatsApp de confiance\n📢 Canal: ${config.telegramLink}`,
+      [], botImageUrl
+    );
+  }
+});
+
+// ==================== OWNER (info) ====================
+this.commands.set("owner", {
+  name: "owner",
+  description: "Infos propriétaire",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `👑 *PROPRIÉTAIRE DU BOT*\n\n📱 Contact: wa.me/${config.ownerNumber}\n📢 Canal: ${config.telegramLink}\n\n> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻-𝙷𝙴𝚇`
+    );
+  }
+});
+
+// ==================== CANAL ====================
+this.commands.set("canal", {
+  name: "canal",
+  description: "Lien du canal Telegram",
+  execute: async (sock, msg) => {
+    const from = msg.key.remoteJid;
+    await sendWithChannelButton(sock, from,
+      `📢 *CANAL CENTRAL-HEX*\n\n🔗 ${config.telegramLink || "https://t.me/centralhex224"}\n\n👆 Rejoins notre canal pour les updates !`
+    );
+  }
+});
+
+// ==================== TAGALL (alias) ====================
+this.commands.set("tagall", {
+  name: "tagall",
+  description: "Alias de tag",
+  execute: async (sock, msg, args) => {
+    return this.commands.get("tag").execute(sock, msg, args);
+  }
+});
+
+
+
+    console.log(`${colors.green}✅ Commandes intégrées chargées${colors.reset}`);
+  }
+
+  async execute(commandName, sock, msg, args, context) {
+    const cmd = commandName.toLowerCase();
+    
+    if (!this.commands.has(cmd)) {
+      console.log(`${colors.yellow}⚠️ Commande inconnue: ${cmd}${colors.reset}`);
+      
+      if (context?.botPublic) {
+        try {
+          await sendWithChannelButton(sock, msg.key.remoteJid, 
+            `❌ Commande "${cmd}" non reconnue. Tapez ${context?.prefix || prefix}menu pour voir la liste des commandes.`);
+        } catch (error) {}
+      }
+      return false;
+    }
+    
+    const command = this.commands.get(cmd);
+    
+    if (!command || typeof command.execute !== 'function') {
+      console.log(`${colors.red}❌ Commande invalide: ${cmd}${colors.reset}`);
+      return false;
+    }
+    
+    try {
+      console.log(`${colors.cyan}⚡ Exécution: ${cmd} par ${context?.sender || 'Inconnu'}${colors.reset}`);
+      
+      // Réaction aléatoire
+      try {
+        if (autoReact) {
+          const randomEmoji = randomEmojis[Math.floor(Math.random() * randomEmojis.length)];
+          await sock.sendMessage(msg.key.remoteJid, {
+            react: { text: randomEmoji, key: msg.key }
+          });
+        }
+      } catch (reactError) {}
+
+      await command.execute(sock, msg, args, context);
+      
+      console.log(`${colors.green}✅ Commande exécutée avec succès: ${cmd}${colors.reset}`);
+      return true;
+      
+    } catch (error) {
+      console.log(`${colors.red}❌ Erreur exécution ${cmd}: ${error.message}${colors.reset}`);
+      
+      try {
+        await sendWithChannelButton(sock, msg.key.remoteJid, 
+          `❌ *ERREUR D'EXÉCUTION*\n\nCommande: ${cmd}\nErreur: ${error.message}`);
+      } catch (sendError) {}
+      
+      return false;
+    }
+  }
+
+  getCommandList() {
+    return Array.from(this.commands.keys());
+  }
+
+  reloadCommands() {
+    console.log(`${colors.cyan}🔄 Rechargement des commandes...${colors.reset}`);
+    
+    try {
+      const currentCommands = new Map(this.commands);
+      this.commands.clear();
+      this.initializeCommands();
+      
+      if (this.commands.size === 0) {
+        this.commands = currentCommands;
+      }
+      
+      console.log(`${colors.green}✅ ${this.commands.size} commandes rechargées${colors.reset}`);
+    } catch (error) {
+      console.log(`${colors.red}❌ Erreur rechargement commandes: ${error.message}${colors.reset}`);
+    }
+  }
+}
+
+// ==================== FONCTIONS UTILITAIRES ====================
+global.activityTracker = global.activityTracker || new Map();
+
+function trackActivity(msg) {
+  const from = msg.key.remoteJid;
+  const sender = msg.key.participant || msg.key.remoteJid;
+
+  if (!from.endsWith("@g.us")) return;
+
+  const groupData = global.activityTracker.get(from) || {};
+  groupData[sender] = Date.now();
+  global.activityTracker.set(from, groupData);
+}
+
+function isOwner(senderJid) {
+  const normalizedJid = senderJid.split(":")[0];
+  const ownerJid = OWNER_NUMBER.split(":")[0];
+  return normalizedJid === ownerJid;
+}
+
+async function isAdminInGroup(sock, jid, senderJid) {
+  try {
+    if (!jid.endsWith("@g.us")) return false;
+    
+    const metadata = await getGroupMetadata(sock, jid);
+    const participant = metadata.participants.find(p => p.id === senderJid);
+    
+    if (!participant) return false;
+    
+    return participant.admin === "admin" || participant.admin === "superadmin";
+  } catch (error) {
+    console.log(`${colors.yellow}⚠️ Erreur vérification admin: ${error.message}${colors.reset}`);
+    return false;
+  }
+}
+
+function displayBanner() {
+  console.clear();
+  console.log(`
+${colors.magenta}╔══════════════════════════════════════════════════╗
+║${colors.bright}${colors.cyan}         WHATSAPP BOT - CENTRALE-HEX           ${colors.reset}${colors.magenta}║
+╠══════════════════════════════════════════════════╣
+║${colors.green} ✅ BOT PRÊT À L'EMPLOI                          ${colors.magenta}║
+║${colors.green} ✅ RESTAURATION MESSAGES ACTIVÉE                ${colors.magenta}║
+║${colors.green} ✅ EFFET TRANSFÉRÉ ACTIVÉ                       ${colors.magenta}║
+╚══════════════════════════════════════════════════╝${colors.reset}
+`);
+}
+
+// ==================== DÉMARRAGE DU BOT ====================
+async function startBot() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  async function askForPhoneNumber() {
+    return new Promise((resolve) => {
+      rl.question(`${colors.cyan}╔══════════════════════════════════════╗
+║         𝗖𝗘𝗡𝗧𝗥𝗔𝗟-𝗛𝗘𝗫-𝗩1      ║
+╠══════════════════════════════════════╣
+║  📱 ENTREZ VOTRE NUMÉRO WHATSAPP :  ║
+║  [      +224 XX XX XX XX      ]     ║
+╚══════════════════════════════════════╝
+${colors.reset}`, (phone) => {
+        resolve(phone.trim());
+      });
+    });
+  }
+
+  try {
+    displayBanner();
+    
+    const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+    const { version } = await fetchLatestBaileysVersion();
+    
+    sock = makeWASocket({
+      version,
+      logger: P({ level: logLevel }),
+      printQRInTerminal: false,
+      auth: state,
+      browser: Browsers.ubuntu("Chrome"),
+      markOnlineOnConnect: alwaysOnline,
+      syncFullHistory: false,
+    });
+
+    const commandHandler = new CommandHandler();
+
+    sock.ev.on("creds.update", saveCreds);
+
+    sock.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+      
+      if (qr) {
+        const phoneNumber = await askForPhoneNumber();
+        if (!phoneNumber || phoneNumber.length < 9) {
+          console.log(`${colors.red}❌ Numéro invalide${colors.reset}`);
+          process.exit(1);
+        }
+
+        try {
+          const code = await sock.requestPairingCode(phoneNumber);
+          console.log(`${colors.green}✅ Code de pairing: ${code}${colors.reset}`);
+          console.log(`${colors.cyan}📱 Entrez ce code dans WhatsApp > Appareils liés${colors.reset}`);
+          await delay(3000);
+        } catch (pairError) {
+          console.log(`${colors.red}❌ Erreur pairing: ${pairError.message}${colors.reset}`);
+          process.exit(1);
+        }
+      }
+      
+      if (connection === "close") {
+        const reason = new Error(lastDisconnect?.error)?.output?.statusCode;
+        if (reason === DisconnectReason.loggedOut) {
+          console.log(`${colors.red}❌ Déconnecté, suppression des données...${colors.reset}`);
+          exec("rm -rf auth_info_baileys", () => {
+            console.log(`${colors.yellow}🔄 Redémarrage...${colors.reset}`);
+            startBot();
+          });
+        } else {
+          console.log(`${colors.yellow}🔄 Reconnexion...${colors.reset}`);
+          startBot();
+        }
+      } else if (connection === "open") {
+        console.log(`${colors.green}✅ Connecté à WhatsApp!${colors.reset}`);
+        console.log(`${colors.cyan}🔓 Mode: ${botPublic ? 'PUBLIC' : 'PRIVÉ'}${colors.reset}`);
+        
+        // Message de confirmation avec ENCADREMENT
+        const confirmMessage = `
+┏━━❖ 𝗖𝗘𝗡𝗧𝗥𝗔𝗟-𝗛𝗘𝗫 ❖━━┓
+┃
+┃ ✅ *CONNEXION RÉUSSIE*
+┃
+┃ 📊 Commandes: ${commandHandler.getCommandList().length}
+┃ 🔓 Mode: ${botPrivée? 'PUBLIC' : 'PRIVÉ'}
+┃ 🎤 Fake Recording: ${fakeRecording ? 'ON' : 'OFF'}
+┃ ⌨️ Fake Typing: ${fakeTyping ? 'ON' : 'OFF'}
+┃ 🟢 Always Online: ${alwaysOnline ? 'ON' : 'OFF'}
+┃ 🔄 Restauration: ACTIVÉE
+┃
+┗━━━━━━━━━━━━━━━━━━━┛
+
+> 𝚙𝚘𝚠𝚎𝚛𝚎𝚍 𝚋𝚢 𝙲𝙴𝙽𝚃𝚁𝙰𝙻𝙴-𝙷𝙴𝚇`;
+        
+        try {
+          await sendWithChannelButton(sock, OWNER_NUMBER, confirmMessage, [], botImageUrl);
+          console.log(`${colors.green}✅ Message de confirmation envoyé${colors.reset}`);
+        } catch (error) {
+          console.log(`${colors.yellow}⚠️ Impossible d'envoyer message: ${error.message}${colors.reset}`);
+        }
+        
+        botReady = true;
+      }
+    });
+
+    // ==================== GESTION DES VUES UNIQUES ====================
+    const { saveViewOnce } = require("./viewonce/store");
+
+    sock.ev.on("messages.upsert", async ({ messages }) => {
+      const msg = messages[0];
+      if (!msg.message) return;
+
+      const jid = msg.key.remoteJid;
+
+      const viewOnce = msg.message.viewOnceMessageV2 || msg.message.viewOnceMessageV2Extension;
+
+      if (!viewOnce) return;
+
+      const inner = viewOnce.message.imageMessage || viewOnce.message.videoMessage;
+
+      if (!inner) return;
+
+      try {
+        const type = inner.mimetype.startsWith("image") ? "image" : "video";
+        const stream = await downloadContentFromMessage(inner, type);
+        let buffer = Buffer.from([]);
+
+        for await (const chunk of stream) {
+          buffer = Buffer.concat([buffer, chunk]);
+        }
+
+        saveViewOnce(jid, {
+          type,
+          buffer: buffer.toString("base64"),
+          caption: inner.caption || "",
+          from: msg.key.participant || msg.key.remoteJid,
+          time: Date.now()
+        });
+
+        console.log("✅ Vue unique interceptée");
+
+      } catch (e) {
+        console.log("❌ Erreur vue unique", e);
+      }
+    });
+
+    // ==================== BIENVENUE AUTO ====================
+    sock.ev.on("group-participants.update", async (update) => {
+      try {
+        if (!welcomeEnabled) return;
+        if (update.action !== "add") return;
+
+        const groupJid = update.id;
+        const newMemberJid = update.participants[0];
+        
+        const metadata = await getGroupMetadata(sock, groupJid);
+        const groupName = metadata.subject || "Groupe";
+        const memberCount = metadata.participants.length;
+
+        const text = `
+┏━━━❖ 𝗖𝗘𝗡𝗧𝗥𝗔𝗟-𝗛𝗘𝗫 ❖━━━━┓
+┃ Groupe: ${groupName}
+┃ Membres: ${memberCount}
+┃
+┃ @${newMemberJid.split('@')[0]}
+┃ 
+┃ *BIENVENUE PAUVRE MORTEL*
+┗━━━━━━━━━━━━━━━━━━┛`;
+
+        await sendWithChannelButton(sock, groupJid, text, [newMemberJid], botImageUrl);
+
+      } catch (err) {
+        console.log("auto welcome error:", err);
+      }
+    });
+
+    // ==================== FAKE RECORDING & TYPING ====================
+    sock.ev.on("messages.upsert", async ({ messages }) => {
+      try {
+        const msg = messages[0];
+        if (!msg.message || msg.key.fromMe) return;
+
+        if (fakeRecording) {
+          try {
+            await sock.sendPresenceUpdate('recording', msg.key.remoteJid);
+            await delay(1500);
+            await sock.sendPresenceUpdate('available', msg.key.remoteJid);
+          } catch (e) {}
+        }
+        
+        if (fakeTyping) {
+          try {
+            await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
+            await delay(1500);
+            await sock.sendPresenceUpdate('available', msg.key.remoteJid);
+          } catch (e) {}
+        }
+      } catch (error) {}
+    });
+
+    // ==================== TRAITEMENT PRINCIPAL DES MESSAGES ====================
+    sock.ev.on("messages.upsert", async ({ messages, type }) => {
+      if (!["notify", "append"].includes(type)) return;
+
+      const msg = messages[0];
+      if (!msg.message) return;
+
+      trackActivity(msg);
+
+      try {
+        const senderJid = msg.key.participant || msg.key.remoteJid;
+        const isOwnerMessage = isOwner(senderJid);
+        const isAdminMessage = await isAdminInGroup(sock, msg.key.remoteJid, senderJid);
+
+        // ==================== RESTAURATION DES MESSAGES SUPPRIMÉS ====================
+        if (msg.message?.protocolMessage?.type === 0) {
+          const deletedKey = msg.message.protocolMessage.key;
+          const deletedId = deletedKey.id;
+          const chatId = deletedKey.remoteJid || msg.key.remoteJid;
+          const deletedBy = msg.key.participant || msg.key.remoteJid;
+          const isGroup = chatId?.endsWith('@g.us');
+
+          console.log(`${colors.magenta}🚨 SUPPRESSION DÉTECTÉE: ${deletedId} dans ${chatId} par ${deletedBy}${colors.reset}`);
+
+          // ✅ CHAT PRIVÉ UNIQUEMENT - RESTAURATION VERS TON NUMÉRO
+          if (chatId?.endsWith('@s.whatsapp.net')) {
+            console.log(`${colors.cyan}📱 Suppression en privé détectée${colors.reset}`);
+            
+            // Chercher le message original
+            let originalMsg = messageStore.get(deletedId);
+            if (!originalMsg) {
+              const filePath = path.join(DELETED_MESSAGES_FOLDER, `${deletedId}.json`);
+              if (fs.existsSync(filePath)) {
+                try {
+                  originalMsg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                } catch (parseError) {
+                  return;
+                }
+              }
+            }
+
+            if (!originalMsg) return;
+
+            const senderNumber = originalMsg.key?.participant || originalMsg.key?.remoteJid || deletedBy;
+            const messageType = Object.keys(originalMsg.message || {})[0];
+            
+            // 📍 DESTINATION FIXE - TON NUMÉRO
+            const DESTINATION = OWNER_NUMBER;
+
+            // 📸 IMAGE SUPPRIMÉE
+            if (messageType === 'imageMessage' || originalMsg.message?.imageMessage) {
+              try {
+                const imagePath = path.join(DELETED_IMAGES_FOLDER, `${deletedId}.jpg`);
+                const caption = originalMsg.message?.imageMessage?.caption || "";
+                
+                if (fs.existsSync(imagePath)) {
+                  const imageBuffer = fs.readFileSync(imagePath);
+                  
+                  await sendWithChannelButton(sock, DESTINATION, 
+                    `┏━━❖ 📸 IMAGE SUPPRIMÉE ❖━━┓
+┃
+┃ 👤 Envoyé par: @${senderNumber.split('@')[0]}
+┃ 🕒 ${new Date().toLocaleString('fr-FR')}
+┃
+┃ 📝 Légende: ${caption || "Aucune légende"}
+┃
+┗━━━━━━━━━━━━━━━━━━━━━┛`,
+                    [senderNumber],
+                    imagePath
+                  );
+                  
+                  fs.unlinkSync(imagePath);
+                }
+              } catch (imageError) {}
+            }
+            
+            // 💬 TEXTE SUPPRIMÉ
+            else if (messageType === 'conversation' || messageType === 'extendedTextMessage') {
+              let text = "";
+              if (originalMsg.message?.conversation) {
+                text = originalMsg.message.conversation;
+              } else if (originalMsg.message?.extendedTextMessage?.text) {
+                text = originalMsg.message.extendedTextMessage.text;
+              }
+              
+              await sendWithChannelButton(sock, DESTINATION,
+                `┏━━❖ 💬 MESSAGE SUPPRIMÉ ❖━━┓
+┃
+┃ 👤 Envoyé par: @${senderNumber.split('@')[0]}
+┃ 🕒 ${new Date().toLocaleString('fr-FR')}
+┃
+┃ 📝 Contenu:
+┃ ${text}
+┃
+┗━━━━━━━━━━━━━━━━━━━━━┛`,
+                [senderNumber]
+              );
+            }
+
+            // Nettoyage
+            messageStore.delete(deletedId);
+            const jsonPath = path.join(DELETED_MESSAGES_FOLDER, `${deletedId}.json`);
+            if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
+            
+            return;
+          }
+          
+          return;
+        }
+
+        // ==================== SAUVEGARDE DES MESSAGES ====================
+        const messageType = Object.keys(msg.message)[0];
+        if (messageType === "protocolMessage") return;
+
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isOwnerMsg = isOwner(sender);
+        const isGroup = from?.endsWith('@g.us');
+
+        // Récupérer le corps du message
+        let body = "";
+        if (messageType === "conversation") body = msg.message.conversation;
+        else if (messageType === "extendedTextMessage") body = msg.message.extendedTextMessage.text;
+        else if (messageType === "imageMessage") body = msg.message.imageMessage?.caption || "";
+        else if (messageType === "videoMessage") body = msg.message.videoMessage?.caption || "";
+        else return;
+
+        // Sauvegarde du message
+        const savedMsg = {
+          key: msg.key,
+          message: msg.message,
+          pushName: msg.pushName || sender,
+          timestamp: Date.now(),
+          messageType: messageType
+        };
+
+        messageStore.set(msg.key.id, savedMsg);
+        const filePath = path.join(DELETED_MESSAGES_FOLDER, `${msg.key.id}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(savedMsg, null, 2));
+
+        if (messageType === 'imageMessage') {
+          try {
+            const imageMsg = msg.message.imageMessage;
+            const stream = await downloadContentFromMessage(imageMsg, 'image');
+            let buffer = Buffer.from([]);
+            
+            for await (const chunk of stream) {
+              buffer = Buffer.concat([buffer, chunk]);
+            }
+            
+            const imagePath = path.join(DELETED_IMAGES_FOLDER, `${msg.key.id}.jpg`);
+            fs.writeFileSync(imagePath, buffer);
+            
+            savedMsg.imagePath = imagePath;
+            fs.writeFileSync(filePath, JSON.stringify(savedMsg, null, 2));
+          } catch (imageError) {}
+        }
+
+        // ==================== TRAITEMENT DES COMMANDES ====================
+        if (body.startsWith(prefix)) {
+          const args = body.slice(prefix.length).trim().split(/ +/);
+          const command = args.shift().toLowerCase();
+          
+          console.log(`${colors.cyan}🎯 Commande détectée: ${command} par ${sender}${colors.reset}`);
+          
+          const context = {
+            isOwner: isOwnerMsg,
+            sender,
+            prefix: prefix,
+            botPublic: botPublic || isOwnerMsg
+          };
+          
+          if (botPublic || isOwnerMsg) {
+            await commandHandler.execute(command, sock, msg, args, context);
+          }
+        }
+
+      } catch (error) {
+        console.log(`${colors.red}❌ Erreur traitement message: ${error.message}${colors.reset}`);
+      }
+    });
+
+    // ==================== RÉACTIONS ====================
+    sock.ev.on("messages.reaction", async (reactions) => {
+      try {
+        for (const reaction of reactions) {
+          console.log(`${colors.magenta}🎭 Réaction reçue: ${reaction.reaction.text}${colors.reset}`);
+        }
+      } catch (error) {}
+    });
+
+    // ==================== CONSOLE ====================
+    rl.on("line", async (input) => {
+      const args = input.trim().split(/ +/);
+      const command = args.shift().toLowerCase();
+      
+      switch (command) {
+        case "public":
+          botPublic = true;
+          config.botPublic = true;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          console.log(`${colors.green}✅ Mode public activé${colors.reset}`);
+          break;
+          
+        case "private":
+          botPublic = false;
+          config.botPublic = false;
+          fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+          console.log(`${colors.green}✅ Mode privé activé${colors.reset}`);
+          break;
+          
+        case "recording":
+          const recState = args[0];
+          if (recState === "on") {
+            fakeRecording = true;
+            config.fakeRecording = true;
+            fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+            console.log(`${colors.green}✅ Fake recording activé${colors.reset}`);
+          } else if (recState === "off") {
+            fakeRecording = false;
+            config.fakeRecording = false;
+            fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+            console.log(`${colors.green}✅ Fake recording désactivé${colors.reset}`);
+          }
+          break;
+          
+        case "typing":
+          const typeState = args[0];
+          if (typeState === "on") {
+            fakeTyping = true;
+            config.fakeTyping = true;
+            fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+            console.log(`${colors.green}✅ Fake typing activé${colors.reset}`);
+          } else if (typeState === "off") {
+            fakeTyping = false;
+            config.fakeTyping = false;
+            fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+            console.log(`${colors.green}✅ Fake typing désactivé${colors.reset}`);
+          }
+          break;
+          
+        case "reload":
+          commandHandler.reloadCommands();
+          break;
+          
+        case "status":
+          console.log(`${colors.cyan}📊 STATUT DU BOT${colors.reset}`);
+          console.log(`${colors.yellow}• Mode: ${botPrivé? 'PUBLIC' : 'PRIVÉ'}${colors.reset}`);
+          console.log(`${colors.yellow}• Fake Recording: ${fakeRecording ? 'ON' : 'OFF'}${colors.reset}`);
+          console.log(`${colors.yellow}• Fake Typing: ${fakeTyping ? 'ON' : 'OFF'}${colors.reset}`);
+          console.log(`${colors.yellow}• Always Online: ${alwaysOnline ? 'ON' : 'OFF'}${colors.reset}`);
+          console.log(`${colors.yellow}• Commandes: ${commandHandler.getCommandList().length}${colors.reset}`);
+          console.log(`${colors.yellow}• Messages en mémoire: ${messageStore.size}${colors.reset}`);
+          console.log(`${colors.yellow}• Propriétaire: ${config.ownerNumber}${colors.reset}`);
+          break;
+          
+        case "clear":
+          console.clear();
+          displayBanner();
+          break;
+          
+        case "exit":
+          console.log(`${colors.yellow}👋 Arrêt du bot...${colors.reset}`);
+          rl.close();
+          process.exit(0);
+          break;
+          
+        default:
+          console.log(`${colors.yellow}⚠️ Commandes: public, private, recording on/off, typing on/off, reload, status, clear, exit${colors.reset}`);
+      }
+    });
+
+  } catch (error) {
+    console.log(`${colors.red}❌ Erreur démarrage bot: ${error.message}${colors.reset}`);
+    process.exit(1);
+  }
+}
+
+// ==================== DÉMARRAGE ====================
+console.log(`${colors.magenta}🚀 Démarrage de CENTRALE-HEX...${colors.reset}`);
+startBot();
+
+module.exports = {
+  bot: sock,
+  generatePairCode,
+  isBotReady,
+  config
+};

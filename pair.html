@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CENTRAL-HEX-MD • Pairing Code</title>
+  <style>
+    :root {
+      --bg: #000;
+      --card: rgba(0,0,0,0.72);
+      --stroke: rgba(255,255,255,0.18);
+      --text: #fff;
+      --muted: rgba(255,255,255,0.72);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: url("https://files.catbox.moe/d58ulk.jpg") center/cover no-repeat;
+      filter: grayscale(100%) contrast(1.05) brightness(0.55);
+      transform: scale(1.03);
+      z-index: -2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(1200px 600px at 50% -10%, rgba(255,255,255,0.10), transparent 60%),
+                  rgba(0,0,0,0.55);
+      z-index: -1;
+    }
+
+    .wrap {
+      width: min(520px, calc(100vw - 28px));
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      padding: 20px 18px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.70);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .hint {
+      text-align: center;
+      margin: 10px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.92);
+      color: #000;
+      padding: 0 12px;
+      font-size: 15px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    button {
+      width: 130px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.22);
+      background: #fff;
+      color: #000;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); opacity: 0.96; }
+
+    #pair {
+      margin-top: 14px;
+      text-align: center;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .copy {
+      display: inline-block;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.92);
+      color: #000;
+      border: 1px solid rgba(0,0,0,0.25);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: rgba(255,255,255,0.70);
+      font-size: 12px;
+    }
+
+    .footer a { color: rgba(255,255,255,0.92); }
+
+    @media (max-width: 420px) {
+      .row { flex-direction: column; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>CENTRAL-HEX-MD • Pairing</h1>
+    <div class="hint">Entre ton numéro au format <strong>224XXXXXXXX</strong> (sans +). Plusieurs utilisateurs peuvent l’utiliser.</div>
+
+    <div class="row">
+      <input type="number" id="number" inputmode="numeric" placeholder="224XXXXXXXX" />
+      <button id="submit">GÉNÉRER</button>
+    </div>
+
+    <div id="pair"></div>
+
+    <div class="footer">
+      <div>Support : <a href="https://whatsapp.com/channel/0029VbC8YkY7oQhiOiiSpy1z" target="_blank" rel="noopener">WhatsApp Channel</a></div>
+      <div>Créateur : <a href="https://wa.me/224621963059" target="_blank" rel="noopener">ibsacko</a></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+    const out = document.getElementById('pair');
+    const btn = document.getElementById('submit');
+    const input = document.getElementById('number');
+
+    async function copyText(text) {
+      await navigator.clipboard.writeText(text);
+    }
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const raw = (input.value || '').toString().replace(/[^0-9]/g, '');
+      if (!raw) {
+        out.innerHTML = '<div style="color: rgba(255,255,255,0.85)">❗ Entre un numéro WhatsApp.</div>';
+        return;
+      }
+      if (raw.length < 11) {
+        out.innerHTML = '<div style="color: rgba(255,255,255,0.85)">❌ Format invalide.</div>';
+        return;
+      }
+
+      out.innerHTML = '<div style="color: rgba(255,255,255,0.85)">⏳ Génération en cours…</div>';
+
+      try {
+        const { data } = await axios.get(`/code?number=${raw}`);
+        const code = data.code || 'Service Unavailable';
+
+        out.innerHTML = `
+          <div class="copy" id="copyBtn">CODE: <span id="codeTxt">${code}</span> (cliquer pour copier)</div>
+        `;
+
+        document.getElementById('copyBtn').addEventListener('click', async () => {
+          const txt = document.getElementById('codeTxt').innerText;
+          await copyText(txt);
+          document.getElementById('copyBtn').innerText = 'COPIÉ ✅';
+          setTimeout(() => {
+            document.getElementById('copyBtn').innerHTML = `CODE: <span id="codeTxt">${code}</span> (cliquer pour copier)`;
+          }, 800);
+        });
+
+      } catch (err) {
+        out.innerHTML = '<div style="color: rgba(255,255,255,0.85)">⚠️ Erreur. Réessaie plus tard.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
