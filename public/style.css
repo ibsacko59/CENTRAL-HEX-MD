@@ -17,8 +17,8 @@ border-radius:25px;
 width:95%;
 max-width:420px;
 text-align:center;
-animation:fade 1s ease;
 box-shadow:0 0 40px rgba(255,255,255,0.2);
+animation:fade 1s ease;
 }
 
 .logo{
@@ -57,7 +57,11 @@ border:1px solid #fff;
 transform:scale(1.05);
 }
 
-.footer{margin-top:15px;font-size:14px;opacity:0.6;}
+.footer{
+margin-top:15px;
+font-size:14px;
+opacity:0.6;
+}
 
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
